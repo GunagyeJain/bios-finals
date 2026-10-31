@@ -59,3 +59,14 @@ def strip(img: np.ndarray, segments: pd.DataFrame, duration: float, t: float) ->
         img[y0:, x0:max(x0 + 1, x1)] = BGR.get(r.light, BGR["none"])
     x = min(w - 1, int(w * t / duration))
     cv2.line(img, (x, y0 - 4), (x, h - 1), INK, 2)
+
+
+def arms(img: np.ndarray, side_masks: dict[str, np.ndarray], alpha: float = 0.35) -> None:
+    """Tint each hand's skin region (hand + forearm) in its side colour, with a 2 px outline."""
+    for side, mask in side_masks.items():
+        if not mask.any():
+            continue
+        col = np.array(HAND[side], np.float32)
+        img[mask] = (img[mask] * (1 - alpha) + col * alpha).astype(np.uint8)
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(img, contours, -1, HAND[side], 2, cv2.LINE_AA)
