@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import time
+import urllib.request
 from collections import Counter
 from pathlib import Path
 from typing import Iterator
@@ -56,8 +57,11 @@ def _detect(clip: str, detection: float = params.MIN_DETECTION_CONF, tracking: f
 
 def run(clip: str) -> None:
     p = ClipPaths(clip).mkdir()
-    if not params.MODEL_PATH.exists():
-        raise FileNotFoundError(f"{params.MODEL_PATH}: download it from {params.MODEL_URL}")
+    if not params.MODEL_PATH.exists():                     # git-ignored: a fresh clone downloads it once
+        params.MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = params.MODEL_PATH.with_suffix(".tmp")
+        urllib.request.urlretrieve(params.MODEL_URL, tmp)
+        tmp.replace(params.MODEL_PATH)
     counts: Counter[int] = Counter()
 
     def counted() -> Iterator[FrameHands]:

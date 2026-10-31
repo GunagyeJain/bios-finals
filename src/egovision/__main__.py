@@ -10,7 +10,9 @@ from .schema import ClipPaths
 from .stages import BY_NAME, STAGES, NotBuilt
 
 
-def run_clip(clip: str, only: str | None, force: bool) -> None:
+def run_clip(clip: str, only: str | None, force: bool) -> bool:
+    """Runs the stages in order. A crashing stage is reported and ends this clip (later stages need its
+    output); the caller goes on with the next clip. Returns False if a stage failed."""
     from .io.frames import build_meta
 
     p = ClipPaths(clip).mkdir()
@@ -26,6 +28,10 @@ def run_clip(clip: str, only: str | None, force: bool) -> None:
             print(f"  {st.name:15s} ok   {time.time() - t0:6.1f}s")
         except NotBuilt as e:
             print(f"  {st.name:15s} skip (not built yet: {st.owner} {st.task}) {e}")
+        except Exception as e:  # report and keep going: one bad clip must not stop `run --all`
+            print(f"  {st.name:15s} FAIL {e.__class__.__name__}: {e}")
+            return False
+    return True
 
 
 def status(clip: str) -> None:
@@ -60,9 +66,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "run":
         clips = config.all_clips() if a.all else [a.clip]
+        failed = []
         for c in clips:
             print(f"[{c}]")
-            run_clip(c, a.stage, a.force)
+            if not run_clip(c, a.stage, a.force):
+                failed.append(c)
+        if failed:
+            print(f"{len(failed)} clip(s) had a failing stage: {', '.join(failed)}")
+            return 1
     elif a.cmd == "status":
         status(a.clip)
     elif a.cmd == "check":

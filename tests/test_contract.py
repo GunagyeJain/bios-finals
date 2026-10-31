@@ -44,3 +44,14 @@ def test_cli_skips_stub_stages(fixture_clip, capsys, monkeypatch):
     monkeypatch.setattr("egovision.safety.run.run", stub)
     assert main(["run", "--clip", "fixture_001", "--stage", "safety", "--force"]) == 0
     assert "not built yet" in capsys.readouterr().out
+
+
+def test_cli_reports_a_crashing_stage_and_returns_1(fixture_clip, capsys, monkeypatch):
+    from egovision import stages
+    from egovision.__main__ import main
+
+    def boom(clip):
+        raise RuntimeError("disk full")
+    monkeypatch.setattr(stages.Stage, "load", lambda self: boom)
+    assert main(["run", "--clip", "fixture_001", "--stage", "quality", "--force"]) == 1
+    assert "FAIL RuntimeError: disk full" in capsys.readouterr().out
