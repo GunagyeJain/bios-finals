@@ -10,6 +10,9 @@ Every session handles git itself. No one should have to type a git command or cl
 4. **Never end a session with uncommitted or unpushed work.** Check `git status` is clean and nothing is ahead of `origin/main`.
 5. Push fails because someone pushed first? Pull with rebase and push again, automatically.
 
+## 1b. Build phase: `start`
+Typing **`start`** (or **`continue`**) in a coding session follows `docs/06-plan/start.md`: sync, open your task file in `docs/06-plan/tasks/`, build the next unchecked task in your own files, stop at every ⛔ checkpoint until you say `continue`.
+
 ## 2. Where things go
 | Folder | What |
 |---|---|

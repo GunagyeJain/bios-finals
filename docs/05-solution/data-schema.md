@@ -1,5 +1,6 @@
 # Data schema
 
+_Code: `src/egovision/schema.py` (dataclasses, column lists, `ClipPaths`). Validate any clip with `python -m egovision check --clip X`. Synthetic examples of every file: `python -m egovision fixtures`._
 _Files are the interfaces between people. Change a format only after a heads-up in the team chat + a line in `../08-log/decisions.md`._
 Coordinates: pixels of the video in `meta.json`. Keypoints: MediaPipe order (0 wrist; tips 4, 8, 12, 16, 20). Times: seconds (float).
 
@@ -13,7 +14,9 @@ Coordinates: pixels of the video in `meta.json`. Keypoints: MediaPipe order (0 w
 | `objects.jsonl` | contact | `{frame, t, objects:[{id, name, kind: portable|fixed, bbox, score, moving}]}` |
 | `contacts.csv` | contact | One row per contact interval |
 | `steps.csv` | steps | One row per step |
-| `alerts.csv` | steps, safety | One row per alert |
+| `wilor.jsonl` | hands (GPU job) | Same shape as `hands.jsonl`, only escalated frames |
+| `alerts_steps.csv` | steps | Order alerts (one writer per file) |
+| `alerts_safety.csv` | safety | Safety alerts |
 | `render.mp4` | products | Annotated H.264 video for the app (git-ignored) |
 | `metrics.json` | eval | Numbers for slides |
 
@@ -33,11 +36,11 @@ Coordinates: pixels of the video in `meta.json`. Keypoints: MediaPipe order (0 w
 | `quality.csv` | `clip, t_start, t_end, light (green|yellow|red), reasons ("dark;hands_out"), blur, brightness, hands_visible, edge_cut, agreement, frozen` |
 | `contacts.csv` | `clip, t_start, t_end, hand, state (none|portable|fixed), object_name, object_id, confidence, grip (2f|5f|generic|unsure)` |
 | `steps.csv` | `clip, step_idx, start_s, end_s, verb, object, hand, caption, source (gemini|contact), cycle_idx` |
-| `alerts.csv` | `clip, t_start, t_end, kind (safety|step_missing|step_order|step_extra), severity (info|warn), hand, detail` |
+| `alerts_*.csv` | `clip, t_start, t_end, kind (safety|step_missing|step_order|step_extra), severity (info|warn), hand, detail` |
 
 `contacts.csv`, `steps.csv` columns are a superset of the brief's suggested formats (p.4), so the brief's columns are always present.
 
-## 2. Eval labels: `eval/labels/<clip>.json` (coordinates only, committed; no images)
+## 2. Eval labels: `eval/labels/<clip>__<labeller>.json` (coordinates only, committed; no images)
 ```json
 {"clip": "factory_003", "labeller": "shefali",
  "frames": [{"frame": 812, "tags": ["blur", "glove"],

@@ -21,7 +21,11 @@ _What to build and how. Product scope: `prd.md`. Formats: `data-schema.md`._
 src/egovision/
   __main__.py      CLI: run / index / export / app            (Gunagye)
   schema.py        dataclasses + read/write helpers           (Gunagye, shared: announce edits)
-  config.py        paths, thresholds, prompt vocab            (shared)
+  config.py        paths only                                 (shared)
+  stages.py        ordered stage registry (lazy imports)      (Gunagye)
+  contract.py      `check` command: validates outputs         (Gunagye)
+  fixtures.py      synthetic clips with every output          (Gunagye)
+  */params.py      each module's own thresholds               (module owner)
   io/frames.py     frame iterator, meta.json                  (Gunagye)
   hands/           baseline, tracking, smoothing, gapfill, wilor_fuse   (Abhijay)
   recovery/        rtmlib second opinion, ROI re-detect, low-light       (Bhavyam)
@@ -35,7 +39,7 @@ src/egovision/
 app/               Streamlit: Home.py + pages/                           (Gunagye; Shefali 2 pages)
 tests/             pytest
 ```
-Rule: stay in your folder. Shared files: `schema.py`, `config.py`, `__main__.py`, `requirements.txt`.
+Rule: stay in your folder. Shared files (`schema.py`, `config.py`, `stages.py`, `__main__.py`, `contract.py`, `requirements.txt`) change only through a Request to Gunagye (`../06-plan/start.md` §3).
 
 ## 3. CLI (one command for judges)
 ```

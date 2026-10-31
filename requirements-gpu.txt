@@ -1,0 +1,2 @@
+# GPU-only extras for WiLoR (A4, Abhijay). Install on the RTX laptop or Colab, not needed elsewhere.
+# Follow the WiLoR repo README for torch + CUDA versions; list exact versions here once it runs.

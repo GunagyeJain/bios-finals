@@ -11,3 +11,5 @@ Append-only. Format: `YYYY-MM-DD · who · decision · why`
 - 2026-10-31 · Gunagye · Storage: per-clip files + SQLite index; export LeRobot-style; app Streamlit; Python 3.11 venv · parallel work, fast demo, one language
 - 2026-10-31 · Gunagye · Gemini only on short grab/release windows, cached; order-check reference = repeated cycle inside a factory's job · clips are consecutive parts of one job, tasks don't repeat across clips
 - 2026-10-31 · Gunagye · Owners: Gunagye export+app+contacts+index, Abhijay hands+WiLoR+metrics, Bhavyam recovery+light+redaction+safety, Shefali labels+steps+modules+slides · see `../06-plan/work-split.md`
+- 2026-10-31 · Gunagye · Problem statement PDF stays in `docs/02-problem/` · team reference
+- 2026-10-31 · Gunagye · Build protocol: per-member task files with ⛔ checkpoints, team checkpoints TC0–TC6, synthetic fixtures + plug-in stubs so nobody waits; alerts split into `alerts_steps.csv` / `alerts_safety.csv` (one writer per file) · parallel work without blocking

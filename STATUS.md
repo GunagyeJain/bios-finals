@@ -16,14 +16,14 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 - [x] Synthesis: merge, score, pick one → `docs/03-ideation/synthesis/`, `docs/08-log/decisions.md`
 - [x] Solution design → `docs/05-solution/`
 - [x] Work split by hardware → `docs/06-plan/work-split.md`
-- [ ] Build → `src/`, `notebooks/`
+- [ ] Build → `src/` (type `start` in your session; see `docs/06-plan/start.md`)
 - [ ] Pitch + demo → `docs/07-pitch/`
 - [ ] Submit
 
 ## In progress
 | Who | What |
 |---|---|
-| Gunagye | G1 skeleton, schemas, CLI |
+| Gunagye | G1 foundation done (TC0) → G2 contacts |
 | Abhijay | A1 MediaPipe baseline, mirror check |
 | Bhavyam | B4 redaction, then B1 rtmlib |
 | Shefali | S1 label tool |
@@ -39,4 +39,3 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 - Sponsors / partners and any sponsor-specific prizes?
 - Which clips are the demo clips?
 - Is MediaPipe left/right mirrored on these clips? (A1)
-- `docs/02-problem/problem-statement.pdf` is in git; repo goes public at submission. Remove it before then?
