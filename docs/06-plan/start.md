@@ -1,5 +1,7 @@
 # Start protocol (build phase)
 
+> **Sprint 2 (from 19:20, 31 Oct): follow `sprint-2.md`. Personal ⛔ checkpoints are OFF: finish a step, push, post `done/next` in chat, keep going. Team syncs only at 21:00, 00:00, 02:00.**
+
 When a member types **`start`** (or **`continue`**) in their coding session, follow these steps exactly.
 
 ## 1. Every time

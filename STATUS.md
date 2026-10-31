@@ -5,7 +5,7 @@ _Updated 2026-10-31 by Gunagye_
 Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md` · `ui-design.md`
 
 ## Now
-- **Phase:** plan done → **build** (owners and tasks: `docs/06-plan/work-split.md`)
+- **Phase:** **Sprint 2**: follow `docs/06-plan/sprint-2.md` (cuts, demo clips, timeline to 05:00, one prompt per member). No personal checkpoints.
 - **Hack window:** 24 h · **hard stop: 1 Nov 2026, 11:00** (submission must be in before this)
 - **Submission status:** not started · who submits: _fill in_
 
@@ -23,7 +23,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 ## In progress
 | Who | What |
 |---|---|
-| Gunagye | G2–G4 done, G6 render done; integration 1 on MTL-SKL00089-005 (hands A2 + contacts + render) OK, waiting for B3 quality / S2 steps |
+| Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
 | Abhijay | A2-A3 done: `hands.jsonl` on all 40 clips (swaps/min 41.2 to 2.7) → waiting on checkpoint A-2, then A4 |
 | Bhavyam | B4 done. B3 light built, tuned on all 40 clips, run on 4 → checkpoint B-2 |
 | Shefali | S2 Gemini steps built + tested (mocked); real-clip run needs GEMINI_API_KEY |
