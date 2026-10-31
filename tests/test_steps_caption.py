@@ -58,21 +58,65 @@ class RateLimited(Exception):
     code = 429
 
 
+class Overloaded(Exception):
+    code = 503
+
+
+class DailyQuota(Exception):
+    code = 429
+
+    def __str__(self):
+        return "429 RESOURCE_EXHAUSTED quotaId GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+
+
 ANSWER = {"verb": "fasten", "object": "screw", "hand": "right", "caption": "right hand fastens the screw"}
 
 
-def test_ask_gemini_backs_off_on_429():
+@pytest.fixture(autouse=True)
+def fresh_quota_state(monkeypatch):
+    monkeypatch.setattr(cap, "_exhausted", set())
+    monkeypatch.setattr(P, "MODELS", ("model-a", "model-b"))
+
+
+class ByModel:
+    """generate_content answers per model from its own queue; records the model of every call."""
+    def __init__(self, queues):
+        self.queues, self.models = {m: list(q) for m, q in queues.items()}, []
+
+    def generate_content(self, model, contents, config):
+        self.models.append(model)
+        a = self.queues[model].pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return SimpleNamespace(text=json.dumps(a))
+
+
+def test_ask_gemini_backs_off_on_per_minute_429():
     client = SimpleNamespace(models=FakeModels([RateLimited(), RateLimited(), ANSWER]))
     waits = []
-    assert cap.ask_gemini(client, b"video", "prompt", sleep=waits.append) == ANSWER
+    assert cap.ask_gemini(client, b"video", "prompt", sleep=waits.append) == {**ANSWER, "model": "model-a"}
     assert waits == [P.BACKOFF_S, 2 * P.BACKOFF_S]
 
 
-def test_ask_gemini_does_not_retry_other_errors():
-    client = SimpleNamespace(models=FakeModels([ValueError("bad request")]))
+def test_overloaded_model_falls_back_to_the_next():
+    models = ByModel({"model-a": [Overloaded()] * P.MAX_RETRIES, "model-b": [ANSWER]})
+    answer = cap.ask_gemini(SimpleNamespace(models=models), b"v", "p", sleep=lambda s: None)
+    assert answer["model"] == "model-b" and models.models == ["model-a"] * P.MAX_RETRIES + ["model-b"]
+
+
+def test_daily_quota_skips_the_model_for_the_rest_of_the_run():
+    models = ByModel({"model-a": [DailyQuota()], "model-b": [ANSWER, ANSWER]})
+    client = SimpleNamespace(models=models)
+    cap.ask_gemini(client, b"v", "p", sleep=lambda s: None)
+    cap.ask_gemini(client, b"v", "p", sleep=lambda s: None)
+    assert models.models == ["model-a", "model-b", "model-b"]        # no waiting on a quota that resets tomorrow
+
+
+def test_every_model_failing_raises_the_last_error():
+    models = ByModel({"model-a": [ValueError("bad request")], "model-b": [ValueError("bad request")]})
     with pytest.raises(ValueError):
-        cap.ask_gemini(client, b"video", "prompt", sleep=lambda s: None)
-    assert client.models.calls == 1
+        cap.ask_gemini(SimpleNamespace(models=models), b"v", "p", sleep=lambda s: None)
+    assert models.models == ["model-a", "model-b"]                   # other errors: no retry, next model
 
 
 @pytest.fixture
@@ -85,7 +129,8 @@ def fixture_clip(tmp_path, monkeypatch):
     return make("fixture_001")
 
 
-def test_run_writes_steps_caches_and_falls_back(fixture_clip):
+def test_run_writes_steps_caches_and_falls_back(fixture_clip, monkeypatch):
+    monkeypatch.setattr(P, "MODELS", ("model-a",))
     # fixture contacts → windows 1-4.5, 4.5-6, 6-7, 7-10; the third call fails for good
     models = FakeModels([ANSWER, ANSWER, ValueError("blocked"), ANSWER])
     stats = cap.run("fixture_001", client=SimpleNamespace(models=models), sleep=lambda s: None)
@@ -122,7 +167,8 @@ class RecordingModels(FakeModels):
         return super().generate_content(model, contents, config)
 
 
-def test_mocked_gemini_columns_verb_list_and_cache(fixture_clip):
+def test_mocked_gemini_columns_verb_list_and_cache(fixture_clip, monkeypatch):
+    monkeypatch.setattr(P, "MODELS", (P.MODEL,))
     odd = dict(ANSWER, verb="screw")                    # not in the fixed verb list
     models = RecordingModels([odd, ANSWER, ANSWER, ANSWER])
     cap.run("fixture_001", client=SimpleNamespace(models=models), sleep=lambda s: None)

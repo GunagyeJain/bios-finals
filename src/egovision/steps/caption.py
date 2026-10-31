@@ -143,28 +143,47 @@ def make_client():
     return genai.Client()
 
 
-def _retryable(err: Exception) -> bool:
-    code = getattr(err, "code", None) or getattr(err, "status_code", None)
-    return code in (429, 500, 502, 503, 504)
+_exhausted: set[str] = set()                        # models whose daily quota ran out in this process
+
+
+def _code(err: Exception) -> int | None:
+    return getattr(err, "code", None) or getattr(err, "status_code", None)
+
+
+def _daily_quota(err: Exception) -> bool:
+    """429 because the model's requests-per-day ran out (retry in hours), not a per-minute limit."""
+    text = str(err)
+    return _code(err) == 429 and ("PerDay" in text or "per day" in text)
 
 
 def ask_gemini(client, video: bytes, prompt: str, sleep=time.sleep) -> dict:
-    """One request, exponential backoff on rate limits and server errors. Raises when it gives up."""
+    """One answer. Free-tier quotas are per model and small (20 requests a day on Flash), and new models
+    are often overloaded (503), so each model gets a few tries with backoff on per-minute 429 and 5xx,
+    then the next model in P.MODELS is used; a model out of daily quota is skipped for the rest of the run.
+    Raises the last error when every model fails."""
     from google.genai import types
     cfg = types.GenerateContentConfig(response_mime_type="application/json",
                                       response_schema=RESPONSE_SCHEMA, temperature=0)
     parts = [types.Part.from_bytes(data=video, mime_type="video/mp4"), prompt]
-    for attempt in range(P.MAX_RETRIES):
-        try:
-            resp = client.models.generate_content(model=P.MODEL, contents=parts, config=cfg)
-            return clean_answer(json.loads(resp.text))
-        except Exception as err:                        # noqa: BLE001 (SDK error types vary by version)
-            if not _retryable(err) or attempt == P.MAX_RETRIES - 1:
-                raise
-            wait = P.BACKOFF_S * 2 ** attempt
-            print(f"  gemini {getattr(err, 'code', '')}: retry in {wait:.0f} s")
-            sleep(wait)
-    raise RuntimeError("unreachable")
+    last: Exception | None = None
+    for model in [m for m in P.MODELS if m not in _exhausted]:
+        for attempt in range(P.MAX_RETRIES):
+            try:
+                resp = client.models.generate_content(model=model, contents=parts, config=cfg)
+                return {**clean_answer(json.loads(resp.text)), "model": model}
+            except Exception as err:                    # noqa: BLE001 (SDK error types vary by version)
+                last = err
+                if _daily_quota(err):
+                    _exhausted.add(model)
+                    print(f"  {model}: daily free quota used up, next model")
+                    break
+                if _code(err) not in (429, 500, 502, 503, 504) or attempt == P.MAX_RETRIES - 1:
+                    print(f"  {model}: {_code(err) or type(err).__name__}, next model")
+                    break
+                wait = P.BACKOFF_S * 2 ** attempt
+                print(f"  {model}: {_code(err)}, retry in {wait:.0f} s")
+                sleep(wait)
+    raise last or RuntimeError("every Gemini model is out of daily quota")
 
 
 def clean_answer(a: dict) -> dict:
@@ -233,8 +252,9 @@ def run(clip: str, client=None, sleep=time.sleep) -> dict:
                     print(f"  {t0:.1f}-{t1:.1f} s: gemini failed ({type(err).__name__}: {str(err)[:120]})")
             rows.append(step_row(clip, k, t0, t1, answer, hint))
             if answer:
-                print(f"  {t0:6.1f}-{t1:6.1f} s  {answer['verb']:8s} {answer['object']:20s} {answer['hand']}")
+                print(f"  {t0:6.1f}-{t1:6.1f} s  {answer['verb']:8s} {answer['object']:20s} {answer['hand']:6s} "
+                      f"{answer.get('model', '')}")
     write_csv(p.steps, STEP_COLS, rows)
-    print(f"{clip}: {len(rows)} steps → {p.steps}  (model {P.MODEL}; {stats['calls']} API calls, "
+    print(f"{clip}: {len(rows)} steps → {p.steps}  (models {', '.join(P.MODELS)}; {stats['calls']} windows asked, "
           f"{stats['cached']} cached, {stats['failed']} failed)")
     return stats
