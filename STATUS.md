@@ -26,7 +26,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
 | Abhijay | Done: A6 frozen (recall 41 to 66, L/R 96.6 to 95.7 on 282 hands), `validate_export.py` (11/11 on a real export), `where-it-fails.md`. Gloves and dark have no labelled frames |
 | Shefali | Done: 40 labels, S2 (gemini-3.8-flash, mocked tests; Gunagye runs demo clips), S3 order check, README, slides.md + demo script + Q&A · Next: deck export from slides.md once Metrics numbers exist, demo video, 09:30 fresh-clone test |
-| Bhavyam | B3, B6, labels done; B5 on demo clips, alerts awaiting eye check; business + legal slide text pushed; light rerun on final hands running |
+| Bhavyam | Done: B3 on final hands (59 / 16 / 25 green, yellow, red on 40 clips), B5 (0 alerts on demo clips after eye check failed, keep Safety out of the demo), B6, labels, business + legal text, `robot_overlay.py`, `robot-view.md` · Now: face blur precision, real-clip overlay check · **Flag:** robot-fit rests on unlabelled grabs with median confidence 0.15; see `robot-view.md` |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
 ## Key dates
