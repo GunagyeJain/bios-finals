@@ -17,8 +17,7 @@ MUTED, RULE, GRID, ACCENT, NONE = "#8a8c92", "#1b1a1f", "#2b2b2e", "#4a8ad6", "#
 ALERT = {"safety": "#e5566f", "step_missing": "#d9a441", "step_order": "#d9a441", "step_extra": "#8a8c92"}
 ROWS = ["Light", "Left", "Right", "Steps", "Alerts"]
 MONO = "IBM Plex Mono, monospace"
-PAGES = [("library", "Library"), ("review", "Clip review"), ("export", "Export"), ("modules", "Work modules"),
-         ("metrics", "Metrics")]
+PAGES = [("library", "Library"), ("review", "Clip review"), ("export", "Export"), ("metrics", "Metrics")]
 MARK = ('<span class="ev-mark" aria-hidden="true"><span style="background:#44a282"></span>'
         '<span style="background:#d9a441"></span><span style="background:#e5566f"></span></span>')
 

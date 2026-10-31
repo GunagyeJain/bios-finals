@@ -31,7 +31,7 @@ def test_build_indexes_every_file_of_the_fixture(outputs):
     assert _q("SELECT COUNT(*) FROM contacts") == [(3,)]
     assert _q("SELECT COUNT(*) FROM steps") == [(5,)]
     assert _q("SELECT kind FROM alerts ORDER BY kind") == [("safety",), ("step_missing",)]
-    assert ("lr_accuracy", 0.97) in _q("SELECT key, value FROM metrics")
+    assert ("ours.lr_accuracy", 0.97) in _q("SELECT key, value FROM metrics")
     green, yellow, red = _q("SELECT green_share, yellow_share, red_share FROM clips")[0]
     assert (green, yellow, red) == pytest.approx((2 / 3, 1 / 3, 0.0))
     assert _q("SELECT typeof(t_start) FROM contacts LIMIT 1") == [("real",)]

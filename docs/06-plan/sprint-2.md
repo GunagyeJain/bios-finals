@@ -41,7 +41,8 @@ A4 WiLoR/MANO is cut: stop it now. Leave that code uncommitted unless its tests 
 2. (90 min) A5: `python -m egovision.eval.metrics --clip X` → outputs/<clip>/metrics.json for hands_baseline AND hands:
    detection recall/precision, L/R accuracy, PCK@0.2 (wrist + 5 tips, box-normalised), swaps/min, jitter, FPS,
    accuracy per light colour (quality.csv), labels_prefilled_share, PCK on shared (manual) vs prefilled frames.
-   "partial": true if < 160 labels. Tests on synthetic labels. Run on every labelled clip. Push code (not outputs).
+   "partial": true if < 160 labels. Exact file format: data-schema.md §1.3 (the Metrics page and datasheet read it).
+   Tests on synthetic labels. Run on every labelled clip. Push code (not outputs).
 3. (until 02:00) A6: the single biggest failure the metrics show on the 3 demo clips; re-run metrics after each change;
    before/after in metrics.json. Post "done/next" in chat after every step.
 ```

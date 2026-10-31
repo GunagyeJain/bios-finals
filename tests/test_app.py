@@ -57,3 +57,10 @@ def test_export_page_previews_episodes(indexed):
     at = _run("pages/2_Export.py")
     assert not at.exception
     assert "Episodes" in _html(at) and at.button[0].label == "Build dataset"
+
+
+def test_metrics_page_flags_synthetic_numbers(indexed):
+    at = _run("pages/4_Metrics.py")
+    assert not at.exception
+    page = _html(at)
+    assert "synthetic fixture numbers" in page and "Left/right correct" in page

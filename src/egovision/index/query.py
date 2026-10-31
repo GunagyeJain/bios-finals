@@ -40,7 +40,7 @@ def kpis(lib: pd.DataFrame) -> dict[str, float | None]:
     """Library KPIs. Shares are weighted by clip duration; NaN where nothing is processed yet."""
     dur = lib["duration_s"]
     has_q = lib["green_share"].notna()
-    fps = sql("SELECT AVG(value) AS v FROM metrics WHERE key = 'fps'")["v"].iloc[0]
+    fps = sql("SELECT AVG(value) AS v FROM metrics WHERE key = 'fps.hands'")["v"].iloc[0]
     return {
         "clips": len(lib),
         "hours": dur.sum() / 3600,

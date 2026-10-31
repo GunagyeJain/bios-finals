@@ -82,6 +82,18 @@ def _frame_rows(clip: str, path: Path) -> list[dict]:
     return rows
 
 
+def _flat(d: dict, prefix: str = "") -> dict[str, float]:
+    """Nested metrics.json → {"ours.pck_0.2": 0.81, "per_light.red.ours.pck_0.2": 0.4, ...}; numbers only."""
+    out = {}
+    for k, v in d.items():
+        key = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out |= _flat(v, key + ".")
+        elif isinstance(v, (int, float)) and not isinstance(v, bool):
+            out[key] = float(v)
+    return out
+
+
 def _index_clip(db: sqlite3.Connection, p: ClipPaths) -> None:
     meta = read_meta(p.meta)
     clip = p.clip
@@ -109,8 +121,7 @@ def _index_clip(db: sqlite3.Connection, p: ClipPaths) -> None:
     if p.metrics.exists():
         m = json.loads(p.metrics.read_text(encoding="utf-8"))
         _insert(db, "metrics", ["clip", "key", "value"],
-                [{"clip": clip, "key": k, "value": v} for k, v in m.items()
-                 if isinstance(v, (int, float)) and not isinstance(v, bool)])
+                [{"clip": clip, "key": k, "value": v} for k, v in _flat(m).items()])
 
 
 def build() -> None:

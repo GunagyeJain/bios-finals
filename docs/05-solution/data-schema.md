@@ -40,6 +40,20 @@ Coordinates: pixels of the video in `meta.json`. Keypoints: MediaPipe order (0 w
 
 `contacts.csv`, `steps.csv` columns are a superset of the brief's suggested formats (p.4), so the brief's columns are always present.
 
+### 1.3 `metrics.json` (A5 writes, Metrics page + datasheet read; the index flattens it to `ours.pck_0.2`, …)
+```json
+{"partial": true, "n_labels": 47,
+ "baseline": {"detection_recall": 0.82, "detection_precision": 0.95, "lr_accuracy": 0.88, "pck_0.2": 0.71,
+              "swaps_per_min": 3.2, "jitter_px": 4.1},
+ "ours":     {"...same keys..."},
+ "per_light": {"green": {"n": 30, "baseline": {"pck_0.2": 0.80}, "ours": {"pck_0.2": 0.86}}, "yellow": {}, "red": {}},
+ "labels": {"prefilled_share": 0.6, "pck_manual": 0.80, "pck_prefilled": 0.82},
+ "fps": {"hands_baseline": 26.4, "hands": 75.0, "quality": 30.6, "contact": 7.7, "render": 7.7},
+ "hardware": "Intel i7-13700HX, 16 GB, CPU only",
+ "failures": [{"t": 62.3, "what": "right hand missing", "why": "glove on a dark bench"}]}
+```
+Shares are 0–1; a key that can't be computed is left out (the page shows a dash).
+
 ## 2. Eval labels: `eval/labels/<clip>__<labeller>.json` (coordinates only, committed; no images)
 ```json
 {"clip": "factory_003", "labeller": "shefali",

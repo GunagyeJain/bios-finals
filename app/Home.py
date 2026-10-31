@@ -10,7 +10,6 @@ PAGES = {
     "library": st.Page("library.py", title="Library", default=True),
     "review": st.Page("pages/1_Clip_review.py", title="Clip review", url_path="review"),
     "export": st.Page("pages/2_Export.py", title="Export", url_path="export"),
-    "modules": st.Page("pages/3_Work_modules.py", title="Work modules", url_path="modules"),
     "metrics": st.Page("pages/4_Metrics.py", title="Metrics", url_path="metrics"),
 }
 page = st.navigation(list(PAGES.values()), position="hidden")

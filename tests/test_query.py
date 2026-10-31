@@ -22,7 +22,7 @@ def test_library_and_kpis(indexed):
     lib = query.library()
     assert list(lib["clip"]) == ["fixture_001"] and lib["n_alerts"].iloc[0] == 2
     k = query.kpis(lib)
-    assert k["clips"] == 1 and k["green"] == pytest.approx(2 / 3) and k["fps"] == 12.0
+    assert k["clips"] == 1 and k["green"] == pytest.approx(2 / 3) and k["fps"] == 75.0
 
 
 def test_clip_data_and_hand_lookup(indexed):

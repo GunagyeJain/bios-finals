@@ -101,8 +101,18 @@ def make(clip: str, seconds: int = SECONDS) -> ClipPaths:
                                             "severity": "warn", "hand": "", "detail": "cycle 1 missing 'press press machine'"}])
     write_csv(p.alerts_safety, ALERT_COLS, [{"clip": clip, "t_start": 4.5, "t_end": 6.0, "kind": "safety",
                                              "severity": "warn", "hand": "left", "detail": "left fingertips 12 px from moving 'press machine'"}])
-    p.metrics.write_text(json.dumps({"detection_recall": 0.9, "lr_accuracy": 0.97, "pck_0.2": 0.8,
-                                     "swaps_per_min": 0.3, "jitter_px": 1.2, "fps": 12.0}, indent=2))
+    p.metrics.write_text(json.dumps({
+        "partial": True, "n_labels": 20,
+        "baseline": {"detection_recall": 0.81, "detection_precision": 0.95, "lr_accuracy": 0.86, "pck_0.2": 0.70,
+                     "swaps_per_min": 3.1, "jitter_px": 4.2},
+        "ours": {"detection_recall": 0.93, "detection_precision": 0.96, "lr_accuracy": 0.97, "pck_0.2": 0.80,
+                 "swaps_per_min": 0.3, "jitter_px": 1.2},
+        "per_light": {li: {"n": n, "baseline": {"pck_0.2": b}, "ours": {"pck_0.2": o}}
+                      for li, n, b, o in (("green", 12, 0.78, 0.88), ("yellow", 5, 0.62, 0.74), ("red", 3, 0.35, 0.41))},
+        "labels": {"prefilled_share": 0.6, "pck_manual": 0.79, "pck_prefilled": 0.81},
+        "fps": {"hands_baseline": 26.4, "hands": 75.0, "quality": 30.6, "contact": 7.7, "render": 7.7},
+        "hardware": "fixture", "failures": [{"t": 8.5, "what": "left hand missing", "why": "out of view"}]},
+        indent=2))
     shutil.copy(p.video, p.render)                         # stand-in until G6 render exists
     return p
 
