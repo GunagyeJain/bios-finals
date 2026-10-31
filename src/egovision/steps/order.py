@@ -6,20 +6,21 @@ In: steps.csv of every clip in the same factory  Out: alerts_steps.csv (schema.A
 Each step becomes a `verb:object` token (`verb="other"` rows are left out: no caption, nothing to check).
 Reference cycle of a factory: the one saved with `save_reference` (outputs/references/<factory>.json),
 else found from the factory's clips in clip-name order: the sequence is cut into cycles at every
-occurrence of its first token, and the most frequent cycle of REF_MIN_LEN..REF_MAX_LEN tokens wins
-(ties: the first full cycle). A factory whose sequence never repeats has no reference.
+occurrence of its first token, and the first full cycle (one that another cycle follows) of
+REF_MIN_LEN..REF_MAX_LEN tokens is the reference. A factory whose sequence never repeats has no reference.
 Cycles of this clip: its tokens cut at every occurrence of the reference's first token; tokens before
 the first cut are the tail of a cycle that started in an earlier clip and are not checked.
 `cycle_idx` in steps.csv is that cycle number (0, 1, ...); this stage only reports it in `detail`
 because steps.csv has one writer (S2).
 Each cycle is aligned to the reference by edit distance. A reference token missing from the cycle and
 present elsewhere in it is `step_order`; otherwise `step_missing`. A cycle token not in the reference is
-`step_extra`. No reference → alerts_steps.csv with the header only, so the stage counts as done.
+`step_extra`. Missing and out-of-order steps are `warn`, extra steps `info`. No reference →
+alerts_steps.csv with the header only, so the stage counts as done.
 """
 from __future__ import annotations
 
 import json
-from collections import Counter
+from pathlib import Path
 
 from egovision import config
 from egovision.schema import ALERT_COLS, STEP_COLS, ClipPaths, read_csv, read_meta, write_csv
@@ -54,18 +55,13 @@ def split_cycles(tokens: list[str], start: str) -> tuple[list[str], list[list[st
 
 
 def find_reference(tokens: list[str]) -> list[str] | None:
-    """Most frequent cycle (cut at the first token) with a sane length; None if nothing repeats."""
+    """First full cycle (cut at the first token, followed by another cycle) with a sane length;
+    None if nothing repeats."""
     if not tokens:
         return None
     _, cycles = split_cycles(tokens, tokens[0])
-    if len(cycles) < 2:
-        return None
-    ok = [tuple(c) for c in cycles if P.REF_MIN_LEN <= len(c) <= P.REF_MAX_LEN]
-    if not ok:
-        return None
-    counts = Counter(ok)
-    best = max(counts.values())
-    return list(next(c for c in ok if counts[c] == best))
+    full = cycles[:-1]                            # the last cycle may be cut off by the end of the footage
+    return next((c for c in full if P.REF_MIN_LEN <= len(c) <= P.REF_MAX_LEN), None)
 
 
 # ---------- alignment ----------
@@ -133,13 +129,14 @@ def clip_steps(clip: str) -> list[dict]:
     return sorted(rows, key=lambda r: float(r["start_s"]))
 
 
-def reference_path(factory: str):
+def reference_path(factory: str) -> Path:
     return config.OUTPUTS / "references" / f"{factory}.json"
 
 
-def save_reference(clip_or_factory: str, steps: list[dict] | None = None) -> list[str]:
-    """Mark a reference cycle. `save_reference(clip)` (app button): that clip's first full cycle, or all
-    its steps if it has no repeat. `save_reference(factory, steps)`: exactly those steps."""
+def save_reference(clip_or_factory: str, steps: list[dict] | None = None) -> Path:
+    """Mark a reference cycle; returns the file. `save_reference(clip)` (app button): that clip's steps
+    become its factory's reference (its first full cycle if the clip repeats one, else all its captioned
+    steps). `save_reference(factory, steps)`: exactly those steps."""
     if steps is None:
         clip = clip_or_factory
         factory = factory_of(clip)
@@ -153,7 +150,7 @@ def save_reference(clip_or_factory: str, steps: list[dict] | None = None) -> lis
     path = reference_path(factory)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"factory": factory, "tokens": ref}, indent=1) + "\n", encoding="utf-8")
-    return ref
+    return path
 
 
 def reference_for(factory: str) -> tuple[list[str] | None, str]:
@@ -183,7 +180,7 @@ def run(clip: str) -> None:
             for kind, tok, j in cycle_problems(ref, cyc):
                 at = span[j] if j is not None else None
                 verb = {"step_missing": "missing", "step_order": "out of order:", "step_extra": "extra"}[kind]
-                rows.append({"clip": clip, "kind": kind, "severity": "warn",
+                rows.append({"clip": clip, "kind": kind, "severity": "info" if kind == "step_extra" else "warn",
                              "t_start": float(at["start_s"]) if at else t0,
                              "t_end": float(at["end_s"]) if at else t1,
                              "hand": at["hand"] if at else "",
