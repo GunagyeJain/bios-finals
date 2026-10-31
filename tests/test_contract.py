@@ -34,7 +34,13 @@ def test_csv_reader_rejects_wrong_header(tmp_path):
         read_csv(tmp_path / "q.csv", QUALITY_COLS)
 
 
-def test_cli_skips_stub_stages(fixture_clip, capsys):
+def test_cli_skips_stub_stages(fixture_clip, capsys, monkeypatch):
     from egovision.__main__ import main
+    from egovision.stages import NotBuilt
+
+    def stub(clip):
+        raise NotBuilt("X1")
+
+    monkeypatch.setattr("egovision.safety.run.run", stub)
     assert main(["run", "--clip", "fixture_001", "--stage", "safety", "--force"]) == 0
     assert "not built yet" in capsys.readouterr().out
