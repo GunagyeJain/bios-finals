@@ -24,7 +24,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Who | What |
 |---|---|
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
-| Abhijay | A6: lag fixed, thresholds settled at 0.2 on 2 factories, re-running 40 clips; 40 labels pushed, 30 shared in progress |
+| Abhijay | A6: lag fixed, thresholds 0.2, re-running 40 clips; 40 labels pushed, shared set skipped (70 of 78 hands hand-clicked) → missed hands on `mytronlabs-000003-002` next |
 | Shefali | Done: 40 labels, S2 (gemini-3.8-flash, mocked tests; Gunagye runs demo clips), S3 order check, README, slides.md + demo script + Q&A · Next: deck export from slides.md once Metrics numbers exist, demo video, 09:30 fresh-clone test |
 | Bhavyam | B3 + B6 done; quality on all 40 clips done (53 % green, 14 % yellow, 34 % red); B5 code pushed, contact on demo clips running; labels 19/40 |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |

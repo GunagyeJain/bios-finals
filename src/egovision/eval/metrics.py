@@ -169,11 +169,6 @@ def merged_labels(by_labeller: dict[str, dict[int, dict]]) -> dict[int, dict]:
     return out
 
 
-def shared_list(clip: str) -> set[int]:
-    path = config.EVAL_LABELS / "shared" / f"{clip}.json"
-    return set(json.loads(path.read_text(encoding="utf-8"))["frames"]) if path.exists() else set()
-
-
 def light_by_second(clip: str) -> list[tuple[float, float, str]]:
     p = ClipPaths(clip)
     if not p.quality.exists():
@@ -185,10 +180,10 @@ def light_at(lights: list[tuple[float, float, str]], t: float) -> str | None:
     return next((c for a, b, c in lights if a <= t < b), None)
 
 
-def score_file(rows: dict[int, FrameHands], labels: dict[int, dict], shared: set[int],
+def score_file(rows: dict[int, FrameHands], labels: dict[int, dict],
                lights: list[tuple[float, float, str]], fps: float) -> tuple[dict, dict[str, Tally]]:
-    """Every group is a Tally. Manual vs prefilled splits by the labelled hand, so a frame's two hands can
-    fall in different groups; only `all` counts predictions, and the manual/prefilled splits don't use precision."""
+    """Every group is a Tally. Hand-clicked vs prefilled splits by the labelled hand, so a frame's two hands
+    can fall in different groups; a big PCK gap between them would mean suggestions biased the labels."""
     groups: dict[str, Tally] = defaultdict(Tally)
     for frame, label in sorted(labels.items()):
         pred = rows[frame].hands if frame in rows else []
@@ -205,15 +200,15 @@ def score_file(rows: dict[int, FrameHands], labels: dict[int, dict], shared: set
                 groups[f"side:{side}"].add(which, pred, count_preds=False)
         manual = [h for h in hands if not h.get("prefill")]
         filled = [h for h in hands if h.get("prefill")]
-        if frame in shared and manual:
-            groups["shared_manual"].add(manual, pred, count_preds=False)
+        if manual:
+            groups["manual"].add(manual, pred, count_preds=False)
         if filled:
             groups["prefilled"].add(filled, pred, count_preds=False)
     out = groups["all"].result()
     out["by_tag"] = {k[4:]: g.result() for k, g in groups.items() if k.startswith("tag:")}
     out["by_light"] = {k[6:]: g.result() for k, g in groups.items() if k.startswith("light:")}
     out["by_side"] = {k[5:]: g.result() for k, g in groups.items() if k.startswith("side:")}
-    out["pck_shared_manual"] = groups["shared_manual"].result()["pck_0.2"] if "shared_manual" in groups else None
+    out["pck_manual"] = groups["manual"].result()["pck_0.2"] if "manual" in groups else None
     out["pck_prefilled"] = groups["prefilled"].result()["pck_0.2"] if "prefilled" in groups else None
     return out, groups
 
@@ -322,13 +317,13 @@ def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
     minutes = n / fps / 60
     by_labeller = load_labels(clip)
     labels = merged_labels(by_labeller)
-    shared, lights = shared_list(clip), light_by_second(clip)
+    lights = light_by_second(clip)
     total = total_labelled_frames()
 
     def full(path: Path) -> dict:
         rows = list(read_hands(path))
         by_frame = {fr.frame: fr for fr in rows}
-        out, _ = score_file(by_frame, labels, shared, lights, fps)
+        out, _ = score_file(by_frame, labels, lights, fps)
         out["swaps_per_min"] = round(swaps_per_min(rows, step, minutes), 2)
         out["jitter_px"] = round(jitter(rows, step), 2)
         out["two_hand_frames"] = pair_order(rows, step)
@@ -346,7 +341,7 @@ def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
     ours = results.get("ours", {})
     m: dict = {"clip": clip, "partial": total < FULL_LABELS, "n_labels": len(labels), "labels_total_team": total,
                "labellers": sorted(by_labeller), **results, "per_light": per_light(results),
-               "labels": _clean({"prefilled_share": prefilled_share(labels), "pck_manual": ours.get("pck_shared_manual"),
+               "labels": _clean({"prefilled_share": prefilled_share(labels), "pck_manual": ours.get("pck_manual"),
                                  "pck_prefilled": ours.get("pck_prefilled")}),
                "fps": speed, "hardware": hardware(), "failures": failures(ours.get("worst_moments", []))}
     if (agree := agreement(by_labeller)):
@@ -372,7 +367,7 @@ def summary(clips: list[str], note: str = "") -> dict:
             labels = merged_labels(load_labels(clip))
             rows = {fr.frame: fr for fr in read_hands(path)}
             fps = read_meta(p.meta)["fps"]
-            _, groups = score_file(rows, labels, shared_list(clip), light_by_second(clip), fps)
+            _, groups = score_file(rows, labels, light_by_second(clip), fps)
             for key, g in groups.items():
                 t = pooled[key]
                 for a in ("labels", "preds", "matched", "side_ok", "pts", "pts_ok", "frames"):
@@ -383,7 +378,7 @@ def summary(clips: list[str], note: str = "") -> dict:
                          "by_tag": {k[4:]: g.result() for k, g in pooled.items() if k.startswith("tag:")},
                          "by_light": {k[6:]: g.result() for k, g in pooled.items() if k.startswith("light:")},
                          "by_side": {k[5:]: g.result() for k, g in pooled.items() if k.startswith("side:")},
-                         "pck_shared_manual": pooled["shared_manual"].result()["pck_0.2"] if "shared_manual" in pooled else None,
+                         "pck_manual": pooled["manual"].result()["pck_0.2"] if "manual" in pooled else None,
                          "pck_prefilled": pooled["prefilled"].result()["pck_0.2"] if "prefilled" in pooled else None}
     path = config.OUTPUTS / "metrics_summary.json"
     old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}

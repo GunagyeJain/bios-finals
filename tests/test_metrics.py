@@ -35,8 +35,8 @@ def labels(*per_frame):
     return {i * 2: {**f, "frame": i * 2} for i, f in enumerate(per_frame)}
 
 
-def score(r, lab, shared=(), lights=()):
-    return M.score_file(r, lab, set(shared), list(lights), FPS)[0]
+def score(r, lab, lights=()):
+    return M.score_file(r, lab, list(lights), FPS)[0]
 
 
 def test_perfect_prediction_scores_one():
@@ -94,15 +94,11 @@ def test_splits_by_tag_light_and_side():
     assert out["by_side"]["left"]["detection_recall"] == 1.0 and out["by_side"]["right"]["detection_recall"] == 0.0
 
 
-def test_shared_manual_and_prefilled_are_reported_apart():
+def test_hand_clicked_and_prefilled_are_reported_apart():
     lab = labels(frame([label()]), frame([label(prefill="rtmlib")]))
-    out = score(rows([pred()], [pred(off=20)]), lab, shared=[0])
-    assert (out["pck_shared_manual"], out["pck_prefilled"]) == (1.0, 0.0)
+    out = score(rows([pred()], [pred(off=20)]), lab)
+    assert (out["pck_manual"], out["pck_prefilled"]) == (1.0, 0.0)
     assert M.prefilled_share(lab) == 0.5
-
-
-def test_manual_hand_outside_the_shared_set_is_not_in_the_shared_number():
-    assert score(rows([pred()]), labels(frame([label()])))["pck_shared_manual"] is None
 
 
 def test_inter_labeller_agreement():
