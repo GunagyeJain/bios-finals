@@ -1,11 +1,13 @@
 """Module-local thresholds and constants. Only this module's owner edits this file."""
 
-# YOLOE vocabulary (text prompts). Edit after the E2 clip notes. Order does not matter.
-PORTABLE = ["screwdriver", "wrench", "pliers", "hammer", "drill", "scissors", "knife", "tool",
-            "box", "bottle", "bag", "cloth", "fabric", "screw", "bolt", "nut", "wire", "tape",
-            "metal part", "plastic part", "pen", "phone", "cup"]
-FIXED = ["machine", "sewing machine", "press machine", "lathe", "conveyor belt", "table",
-         "workbench", "shelf", "rack", "cabinet", "door", "computer"]
+# YOLOE vocabulary (text prompts), from the 4 factories: furniture woodwork (SGF00106), bench
+# assembly of plastic parts and tube profiles (SKL00089), polishing at a lapping wheel (000003),
+# tiles/stone (000060). Fewer, concrete names detect better than many vague ones.
+PORTABLE = ["screwdriver", "pliers", "hammer", "power drill", "angle grinder", "scissors", "knife",
+            "tape dispenser", "caliper", "dial gauge", "brush", "bottle", "cable", "plastic part",
+            "metal part", "wooden plank", "wooden frame", "aluminium profile", "tile", "box", "cloth",
+            "phone"]
+FIXED = ["machine", "polishing wheel", "workbench", "table", "conveyor rollers", "shelf", "rack"]
 
 MODEL = "yoloe-11s-seg.pt"  # smallest text-prompt YOLOE; downloaded into models/ on first run
 DETECT_EVERY = 5          # YOLOE on every 5th processed frame; boxes held in between
