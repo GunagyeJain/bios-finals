@@ -111,9 +111,9 @@ def test_recovery_fills_a_hole_with_track_id_and_voted_side():
     assert out[0].hands[0].agreement == 0.8
 
 
-def test_recovery_defaults_change_nothing():
+def test_plugins_that_find_nothing_change_nothing():
     tr = tracked(rows([hand("left", 400)], [], [hand("left", 410)]))
-    out = apply_recovery(tr, [(fr.frame, fr.t, None) for fr in tr])
+    out = apply_recovery(tr, [(fr.frame, fr.t, None) for fr in tr], lambda *a: None, lambda *a: None)
     assert [len(fr.hands) for fr in out] == [1, 0, 1]
 
 
