@@ -19,6 +19,7 @@ from egovision.schema import CONTACT_COLS, QUALITY_COLS, ClipPaths, read_csv, re
 from . import overlay
 
 WIDTH = 960
+CRF = 30          # app playback only: about 40 MB per 3-min clip instead of 80
 
 
 def _table(path, cols: list[str], times: tuple[str, str]) -> pd.DataFrame:
@@ -43,7 +44,8 @@ def render(clip: str, redact: Callable | None = None) -> None:
     contacts = _table(p.contacts, CONTACT_COLS, ("t_start", "t_end"))
     scale = WIDTH / int(meta["width"])
     size = (WIDTH, int(round(int(meta["height"]) * scale / 2)) * 2)
-    with H264Writer(p.render, fps / step, size) as ours, H264Writer(p.render_baseline, fps / step, size) as before:
+    with (H264Writer(p.render, fps / step, size, CRF) as ours,
+          H264Writer(p.render_baseline, fps / step, size, CRF) as before):
         for i, t, img in frames(p.video, step=step):
             small = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
             fh, bh = final.get(i, []), base.get(i, [])
