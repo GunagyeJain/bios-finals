@@ -2,18 +2,20 @@
 
 _Updated 2026-10-31 by Gunagye_
 
+Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md` · `ui-design.md`
+
 ## Now
-- **Phase:** repo set up → **ideation** (each member, in their own folder)
+- **Phase:** plan done → **build** (owners and tasks: `docs/06-plan/work-split.md`)
 - **Hack window:** 24 h · **hard stop: 1 Nov 2026, 11:00** (submission must be in before this)
 - **Submission status:** not started · who submits: _fill in_
 
 ## Next steps
 - [x] Repo structure, rules, commit hooks, automatic git sync
 - [ ] Everyone: clone + run setup (onboarding message), add hardware details to `docs/01-team/hardware.md`
-- [ ] Everyone: ideas in `docs/03-ideation/<name>/`
-- [ ] Synthesis: merge, score, pick one → `docs/03-ideation/synthesis/`, `docs/08-log/decisions.md`
-- [ ] Solution design → `docs/05-solution/`
-- [ ] Work split by hardware → `docs/06-plan/work-split.md`
+- [x] Everyone: ideas in `docs/03-ideation/<name>/`
+- [x] Synthesis: merge, score, pick one → `docs/03-ideation/synthesis/`, `docs/08-log/decisions.md`
+- [x] Solution design → `docs/05-solution/`
+- [x] Work split by hardware → `docs/06-plan/work-split.md`
 - [ ] Build → `src/`, `notebooks/`
 - [ ] Pitch + demo → `docs/07-pitch/`
 - [ ] Submit
@@ -21,7 +23,11 @@ _Updated 2026-10-31 by Gunagye_
 ## In progress
 | Who | What |
 |---|---|
-| All | Ideation |
+| Gunagye | G1 skeleton, schemas, CLI |
+| Abhijay | A1 MediaPipe baseline, mirror check |
+| Bhavyam | B4 redaction, then B1 rtmlib |
+| Shefali | S1 label tool |
+| All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
 ## Key dates
 | When | What |
@@ -30,6 +36,7 @@ _Updated 2026-10-31 by Gunagye_
 | **2026-11-01 11:00** | **Finals end: submission + judging** |
 
 ## Open questions
-- Judging rubric and weights?
-- Submission format (deck / video / repo / live demo)?
 - Sponsors / partners and any sponsor-specific prizes?
+- Which clips are the demo clips?
+- Is MediaPipe left/right mirrored on these clips? (A1)
+- `docs/02-problem/problem-statement.pdf` is in git; repo goes public at submission. Remove it before then?

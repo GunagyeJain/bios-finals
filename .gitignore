@@ -39,3 +39,17 @@ Thumbs.db
 
 # Personal scratch space
 .local/
+
+# Event footage and outputs: never commit (data-use agreement)
+data/egohack-data/
+outputs/
+exports/
+eval/frames/
+gemini_cache/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.db
+*.sqlite
+docs/00-hackathon/bios_mtl_hackathon.pdf
