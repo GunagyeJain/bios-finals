@@ -1,20 +1,24 @@
 """B4 · owner: Bhavyam. Blur faces and screens/documents (trd.md §5.3). Applied to every exported or
 module video, so a missing detector raises instead of passing footage through unblurred.
-Keep `keep` boxes (hands) sharp, unless one covers most of a face. `python -m egovision.quality.redact --clip X --out path.mp4`."""
+Keep `keep` boxes (hands) sharp, unless one covers most of a face.
+`python -m egovision.quality.redact --clip X --scan` saves whole-clip face boxes for clip_redactor; `--out path.mp4` previews."""
 from __future__ import annotations
 
 import argparse
 import time
 import urllib.request
+from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import numpy as np
 
 from . import params
+from .. import config
 from ..io.frames import frames
-from ..schema import ClipPaths, read_hands
+from ..schema import ClipPaths, read_hands, read_jsonl, read_meta, write_jsonl
 
 
 @lru_cache(maxsize=1)
@@ -55,32 +59,84 @@ def _iou(a: np.ndarray, b: np.ndarray) -> float:
 _tracks: list[dict] = []
 
 
-def _follow(img: np.ndarray) -> list[np.ndarray]:
-    """x, y, w, h of faces proven by one strong detection, kept through weak frames and short gaps, so real faces
-    do not drop out and one-frame false detections never blur.
-    shortcut: state is per process and frames are assumed in order; after a jump old boxes linger for FACE_HOLD
-    calls, which only over-blurs. Hindsight over a whole clip would also catch a face before its strong frame."""
-    size = img.shape[:2]
-    if _tracks and _tracks[0]["size"] != size:
-        _tracks.clear()
-    faces = list(_detect(img))
-    for t in _tracks:
+def _update(tracks: list[dict], detections: np.ndarray, frame: int, size: tuple[int, int]) -> list[dict]:
+    """Match detections to `tracks` and start new ones, in place. Returns the tracks that just ended."""
+    faces = list(detections)
+    for t in tracks:
         best = max(range(len(faces)), key=lambda k: _iou(t["box"], faces[k]), default=None)
         if best is not None and _iou(t["box"], faces[best]) > params.FACE_MATCH_IOU:
             f = faces.pop(best)
             t.update(box=f[:4], peak=max(t["peak"], f[4]), miss=0)
+            t["seen"][frame] = f[:4]
         else:
             t["miss"] += 1
-    _tracks.extend({"box": f[:4], "peak": f[4], "miss": 0, "size": size} for f in faces)
-    _tracks[:] = [t for t in _tracks if t["miss"] <= params.FACE_HOLD]
+    tracks.extend({"box": f[:4], "peak": f[4], "miss": 0, "size": size, "seen": {frame: f[:4]}} for f in faces)
+    ended = [t for t in tracks if t["miss"] > params.FACE_HOLD]
+    tracks[:] = [t for t in tracks if t["miss"] <= params.FACE_HOLD]
+    return ended
+
+
+def _follow(img: np.ndarray) -> list[np.ndarray]:
+    """x, y, w, h of faces proven by one strong detection, kept through weak frames and short gaps, so real faces
+    do not drop out and one-frame false detections never blur. Frames before the strong one stay sharp: scan() fixes
+    that when a clip has been scanned.
+    shortcut: state is per process and frames are assumed in order; after a jump old boxes linger for FACE_HOLD
+    calls, which only over-blurs."""
+    size = img.shape[:2]
+    if _tracks and _tracks[0]["size"] != size:
+        _tracks.clear()
+    _update(_tracks, _detect(img), 0, size)
     return [t["box"] for t in _tracks if t["peak"] >= params.FACE_CONFIRM]
+
+
+def _padded(x: float, y: float, w: float, h: float) -> list[float]:
+    pad = params.FACE_PAD
+    return [float(x - pad * w), float(y - pad * h), float(x + (1 + pad) * w), float(y + (1 + pad) * h)]
 
 
 def face_boxes(img: np.ndarray) -> list[list[float]]:
     """Padded [x1, y1, x2, y2] per followed face, may overhang the frame."""
-    pad = params.FACE_PAD
-    return [[float(x - pad * w), float(y - pad * h), float(x + (1 + pad) * w), float(y + (1 + pad) * h)]
-            for x, y, w, h in _follow(img)]
+    return [_padded(*box) for box in _follow(img)]
+
+
+def _faces_file(clip: str) -> Path:
+    return ClipPaths(clip).dir / "faces.jsonl"
+
+
+def scan(clip: str) -> None:
+    """Write faces.jsonl: padded source-pixel boxes per processed frame. Knowing the whole clip, a proven face is
+    blurred from its first detection, across gaps and FACE_HOLD steps past both ends."""
+    p = ClipPaths(clip)
+    step = int(read_meta(p.meta).get("step", config.FRAME_STEP))
+    tracks: list[dict] = []
+    done: list[dict] = []
+    for i, _, img in frames(p.video, step=step):
+        done += _update(tracks, _detect(img), i, img.shape[:2])
+    boxes: dict[int, list[list[float]]] = defaultdict(list)
+    for t in done + tracks:
+        if t["peak"] < params.FACE_CONFIRM:
+            continue
+        at = sorted(t["seen"])
+        xywh = np.array([t["seen"][f] for f in at])
+        for f in range(max(at[0] - params.FACE_HOLD * step, 0), at[-1] + params.FACE_HOLD * step + 1, step):
+            boxes[f].append(_padded(*(np.interp(f, at, xywh[:, k]) for k in range(4))))
+    write_jsonl(_faces_file(clip), [{"frame": f, "boxes": b} for f, b in sorted(boxes.items())])
+
+
+def clip_redactor(clip: str) -> Callable:
+    """`redact(img, keep=None, frame=None)` for one clip, on any frame size: scanned boxes if the clip has them,
+    otherwise redact_frame. `frame` is the source frame index."""
+    path = _faces_file(clip)
+    if not path.exists():
+        return lambda img, keep=None, frame=None: redact_frame(img, keep)
+    meta = read_meta(ClipPaths(clip).meta)
+    step, width = int(meta.get("step", config.FRAME_STEP)), int(meta["width"])
+    boxes = {r["frame"]: r["boxes"] for r in read_jsonl(path)}
+
+    def redact(img: np.ndarray, keep: list[list[float]] | None = None, frame: int | None = None) -> np.ndarray:
+        s = img.shape[1] / width
+        return blur_boxes(img, [[v * s for v in b] for b in boxes.get(frame - frame % step, [])], keep)
+    return redact
 
 
 def _clip_box(box: list[float], w: int, h: int) -> tuple[int, int, int, int]:
@@ -156,6 +212,10 @@ def preview(clip: str, out: Path) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(prog="egovision.quality.redact")
     ap.add_argument("--clip", required=True)
-    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--out", type=Path, help="write a local preview video")
+    ap.add_argument("--scan", action="store_true", help="write faces.jsonl for this clip")
     a = ap.parse_args()
-    preview(a.clip, a.out)
+    if a.scan:
+        scan(a.clip)
+    if a.out:
+        preview(a.clip, a.out)

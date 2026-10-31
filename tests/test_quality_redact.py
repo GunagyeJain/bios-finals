@@ -154,3 +154,61 @@ def test_preview_writes_a_readable_video(tmp_path, monkeypatch):
     cap = cv2.VideoCapture(str(out))
     assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 5
     cap.release()
+
+
+@pytest.fixture
+def clip_files(tmp_path, monkeypatch):
+    from egovision import config
+    from egovision.schema import ClipPaths, write_meta
+    monkeypatch.setattr(config, "OUTPUTS", tmp_path / "outputs")
+    monkeypatch.setattr(config, "FIXTURE_DIR", tmp_path / "videos")
+    (tmp_path / "videos").mkdir()
+    vw = cv2.VideoWriter(str(tmp_path / "videos" / "fixture_009.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), 10, (160, 120))
+    for _ in range(40):
+        vw.write(noise())
+    vw.release()
+    p = ClipPaths("fixture_009").mkdir()
+    write_meta(p.meta, {"step": 2, "width": 160})
+    return p
+
+
+def face_at(frames_with_score, total=20):
+    return [[(*FACE, frames_with_score[k])] if k in frames_with_score else [] for k in range(total)]
+
+
+def scanned(monkeypatch, frames_with_score):
+    scripted(monkeypatch, face_at(frames_with_score))
+    redact.scan("fixture_009")
+    return redact.read_jsonl(redact._faces_file("fixture_009"))
+
+
+def test_scan_blurs_a_face_before_its_strong_frame_and_across_gaps(clip_files, monkeypatch):
+    rows = {r["frame"]: r["boxes"] for r in scanned(monkeypatch, {5: 0.4, 7: 0.4, 10: 0.95})}
+    for call in (5, 6, 7, 8, 9, 10):
+        assert rows[call * 2][0] == pytest.approx([42, 32, 98, 88])
+
+
+def test_scan_holds_a_proven_face_past_both_ends_only_as_far_as_the_hold(clip_files, monkeypatch):
+    hold = redact.params.FACE_HOLD
+    frames_seen = sorted(r["frame"] for r in scanned(monkeypatch, {9: 0.95, 10: 0.95}))
+    assert frames_seen[0] == (9 - hold) * 2 and frames_seen[-1] == (10 + hold) * 2
+
+
+def test_scan_ignores_faces_that_never_prove_themselves(clip_files, monkeypatch):
+    assert list(scanned(monkeypatch, {k: 0.5 for k in range(20)})) == []
+
+
+def test_clip_redactor_uses_scanned_boxes_on_any_frame_size(clip_files, monkeypatch):
+    scanned(monkeypatch, {10: 0.95})
+    monkeypatch.setattr(redact, "_yunet", lambda: pytest.fail("a scanned clip needs no detector"))
+    blur = redact.clip_redactor("fixture_009")
+    big = noise(240, 320)
+    assert blur(big, frame=20)[64:176, 84:196].std() < big[64:176, 84:196].std() / 4
+    assert blur(big, frame=21)[64:176, 84:196].std() < big[64:176, 84:196].std() / 4   # odd frames use their step
+    assert blur(big, frame=38) is big                                                  # past the hold
+
+
+def test_clip_redactor_falls_back_to_live_detection_without_a_scan(clip_files, monkeypatch):
+    scripted(monkeypatch, [[(*FACE, 0.95)]])
+    img = noise()
+    assert redact.clip_redactor("fixture_009")(img, frame=0)[32:88, 42:98].std() < img[32:88, 42:98].std() / 4

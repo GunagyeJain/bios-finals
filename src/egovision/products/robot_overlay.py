@@ -95,7 +95,8 @@ def draw_frame(img: np.ndarray, hands: list[Hand], grips: dict[str, str], scale:
 def render(clip: str, mode: str = "both", redact: Callable | None = None) -> None:
     """One pass writes every requested view, so faces are blurred once."""
     if redact is None:
-        from egovision.quality.redact import redact_frame as redact
+        from egovision.quality.redact import clip_redactor
+        redact = clip_redactor(clip)
     p = ClipPaths(clip)
     meta = read_meta(p.meta)
     step, fps = int(meta["step"]), float(meta["fps"])
@@ -110,7 +111,7 @@ def render(clip: str, mode: str = "both", redact: Callable | None = None) -> Non
         for i, t, img in frames(p.video, step=step):
             small = cv2.resize(img, size, interpolation=cv2.INTER_AREA)
             now = hands.get(i, [])
-            clean = redact(small, keep=[[v * scale for v in h.bbox] for h in now])
+            clean = redact(small, keep=[[v * scale for v in h.bbox] for h in now], frame=i)
             grips = {r.hand: r.grip for r in _at(contacts, t).itertuples()}
             for m, writer in writers.items():
                 out = clean.copy()

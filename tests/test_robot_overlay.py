@@ -96,7 +96,7 @@ def test_render_writes_both_views_like_render_mp4_and_passes_hand_boxes_to_redac
     p = ClipPaths("fixture_001")
     kept = []
 
-    def stub(img, keep=None):
+    def stub(img, keep=None, frame=None):
         kept.append(keep)
         return img
 
@@ -117,5 +117,5 @@ def test_render_one_mode_without_contacts_writes_only_that_view(tmp_path, monkey
     make("fixture_001", seconds=1)
     p = ClipPaths("fixture_001")
     write_csv(p.contacts, CONTACT_COLS, [])
-    ro.render("fixture_001", "5f", redact=lambda img, keep=None: img)
+    ro.render("fixture_001", "5f", redact=lambda img, keep=None, frame=None: img)
     assert (p.dir / "render_robot_5f.mp4").exists() and not (p.dir / "render_robot_2f.mp4").exists()
