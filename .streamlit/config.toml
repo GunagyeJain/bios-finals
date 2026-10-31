@@ -25,3 +25,6 @@ showWidgetBorder = true
 
 [client]
 toolbarMode = "minimal"
+
+[server]
+enableStaticServing = true      # app/static/ (git-ignored): rendered videos for the synced player

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>/*CSS*/</style>
+</head>
+<body>
+<main class="p">
+  <div class="top">
+    <section class="stage" aria-label="Clip video">
+      <div class="bar">
+        <div class="views" role="tablist" aria-label="View"></div>
+        <div class="hint">Space play · ← → 5 s · 1–4 view</div>
+      </div>
+      <div class="vidwrap">
+        <video id="v" controls playsinline preload="auto"></video>
+        <div class="novideo" hidden>This clip has no video to show yet.</div>
+      </div>
+      <div class="strip" id="strip" title="Quality over time: click to jump"></div>
+    </section>
+    <aside class="side">
+      <section class="card moment" aria-live="polite">
+        <div class="tc" id="tc">This moment · 0:00.0</div>
+        <div class="answer"><i id="lightsq"></i><span id="light">Not graded</span></div>
+        <div class="why" id="why">&nbsp;</div>
+        <dl class="kv">
+          <dt><i class="dot" style="background:var(--left)"></i>Left</dt><dd id="hl">—</dd>
+          <dt><i class="dot" style="background:var(--right)"></i>Right</dt><dd id="hr">—</dd>
+          <dt>Holds</dt><dd id="hold">—</dd>
+          <dt>Robots</dt><dd id="robot">—</dd>
+          <dt>Step</dt><dd id="step">—</dd>
+          <dt>Alert</dt><dd id="alert">—</dd>
+        </dl>
+      </section>
+      <section class="card lists">
+        <div class="ltabs" role="tablist" aria-label="Lists"></div>
+        <ol class="list" id="list"></ol>
+      </section>
+    </aside>
+  </div>
+  <section class="card tl">
+    <header>
+      <h3>Timeline</h3>
+      <div class="legend" id="legend"></div>
+    </header>
+    <div id="tl" class="tlbox"></div>
+    <div class="tip" id="tip" hidden></div>
+  </section>
+</main>
+<script>
+const DATA = /*DATA*/null;
+/*JS*/
+</script>
+</body>
+</html>

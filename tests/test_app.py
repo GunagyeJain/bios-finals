@@ -43,7 +43,7 @@ def test_clip_review_renders_and_shows_moment(indexed):
     at = _run("pages/1_Clip_review.py", clip="fixture_001", t=1.5)
     assert not at.exception
     page = _html(at)
-    assert "This moment · 0:01.5" in page and "screwdriver" in page and "Usable" in page
+    assert "fixture_001" in page and "grabs" in page
 
 
 def test_empty_state_without_index(tmp_path, monkeypatch):
@@ -64,3 +64,29 @@ def test_metrics_page_flags_synthetic_numbers(indexed):
     assert not at.exception
     page = _html(at)
     assert "synthetic fixture numbers" in page and "Left/right correct" in page
+
+
+def test_player_payload_links_videos_and_packs_the_timeline(indexed, tmp_path, monkeypatch):
+    import player
+    from egovision.index import query
+    monkeypatch.setattr(player, "STATIC", tmp_path / "static")
+    d = query.clip_data("fixture_001")
+    p = player.payload("fixture_001", d, 30.0, 3.0)
+    ours = next(v for v in p["views"] if v["key"] == "ours")
+    assert ours["url"].startswith("/app/static/media/fixture_001/render.mp4?v=")
+    assert (tmp_path / "static" / "fixture_001" / "render.mp4").exists()
+    assert [v["url"] for v in p["views"] if v["key"] in ("2f", "5f")] == [None, None]   # robot views not rendered
+    assert len(p["segments"]) == 3 and len(p["hands"]) == 90 and p["robot"]["2f"] == ["2f", "generic"]
+
+
+def test_player_html_embeds_data_safely(indexed, monkeypatch, tmp_path):
+    import player
+    monkeypatch.setattr(player, "STATIC", tmp_path / "static")
+    captured = {}
+    monkeypatch.setattr(player.components, "html", lambda html, **kw: captured.setdefault("html", html))
+    from egovision.index import query
+    d = query.clip_data("fixture_001")
+    d["steps"].loc[0, "caption"] = "</script><script>alert(1)</script>"
+    player.player("fixture_001", d, 30.0, 3.0)
+    html = captured["html"]
+    assert html.count("</script>") == 1 and "/*DATA*/" not in html and "requestAnimationFrame" in html

@@ -1,7 +1,7 @@
 #!/bin/sh
 # What may enter git (event data-use agreement: footage leaks = disqualification). Allowlist:
 #  - text files with a known code/doc extension, max 1 MB, no secrets
-#  - images only as our own diagrams in assets/diagrams/ (.svg, .png)
+#  - images only as our own diagrams in assets/diagrams/ (.svg, .png); .html/.js only for the app UI in app/
 #  - notebooks only with every output cleared
 # Everything else is blocked: video, frames, PDFs, archives, CSV/JSONL of clips, weights, binaries.
 # Usage: <file list on stdin> | sh scripts/check-files.sh [<commit>]   (no commit = staged files)
@@ -22,6 +22,7 @@ while IFS= read -r f; do
     .githooks/*|*/.gitkeep|.gitkeep) kind=text ;;
     *.md|*.py|*.txt|*.sh|*.toml|*.yml|*.yaml|*.json|*.cfg|*.ini|*.css|*.example) kind=text ;;
     .gitignore|.gitattributes|.editorconfig|license|makefile) kind=text ;;
+    app/*.html|app/*.js) kind=text ;;
     *.ipynb) kind=notebook ;;
     *) block "$f" "file type not allowed; footage, frames, PDFs, archives, CSV/JSONL, weights stay out of git"; continue ;;
   esac

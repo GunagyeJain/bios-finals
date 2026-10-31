@@ -82,5 +82,7 @@ gemini_cache/
 *.pkl
 *.task
 *.tflite
+# videos linked for the app's player (Streamlit static serving)
+app/static/
 !assets/diagrams/*.svg
 !assets/diagrams/*.png
