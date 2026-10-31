@@ -23,7 +23,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 ## In progress
 | Who | What |
 |---|---|
-| Gunagye | G1 foundation done (TC0) → G2 contacts |
+| Gunagye | G2 contacts built + tested (fixture OK); real-clip check pending clips → checkpoint G-1 |
 | Abhijay | A1 MediaPipe baseline, mirror check |
 | Bhavyam | B4 redaction, then B1 rtmlib |
 | Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |
