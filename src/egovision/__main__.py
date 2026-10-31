@@ -36,6 +36,9 @@ def status(clip: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):      # Windows consoles default to cp1252; stages print "→", "·"
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="egovision")
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run", help="run pipeline stages")
