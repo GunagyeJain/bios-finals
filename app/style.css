@@ -156,3 +156,10 @@ video { max-height: min(46vh, 430px); }
   .ev-table tr.grp > td { display: table-cell; }
   .ev-table td.strip { width: 30%; padding-right: 12px; }
 }
+
+/* the one primary action per screen: inverted, never the accent */
+[data-testid="stBaseButton-primary"] { background: #ffffff; border: 0; color: #000000; }
+[data-testid="stBaseButton-primary"] p { color: #000000; font-weight: 600; }
+[data-testid="stBaseButton-primary"]:hover { background: #e6e6e6; color: #000000; }
+[data-testid="stBaseButton-primary"]:disabled { background: var(--raised); }
+[data-testid="stBaseButton-primary"]:disabled p { color: var(--muted); }

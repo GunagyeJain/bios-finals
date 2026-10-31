@@ -1,4 +1,84 @@
-"""G5 · owner: Gunagye. Spec: docs/05-solution/ui-design.md"""
+"""G4 · owner: Gunagye. Export: build a robot dataset from usable footage. ui-design.md §4.
+Calls the same functions as `python -m egovision export` (products/export.py)."""
+import json
+from html import escape
+from pathlib import Path
+
+import pandas as pd
 import streamlit as st
 
-st.info("Not built yet (G5).")
+from components import kpi_strip, mmss, num, title
+from egovision.index import query
+from egovision.products.export import export, preview
+
+if not query.has_index():
+    title("Export", "No clips indexed yet.")
+    st.html('<div class="ev-empty">Process and index clips first; the dataset is built from the index.</div>')
+    st.stop()
+
+lib = query.library()
+title("Export", "A robot dataset from usable footage only: episodes of at least 3 s, cut at step boundaries, "
+                "faces blurred, red seconds never included.")
+
+c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 2, 2])
+name = c1.text_input("Dataset name", value="demo_v1")
+light = c2.radio("Light", ["green", "yellow"], format_func={"green": "Green only", "yellow": "Green + yellow"}.get,
+                 horizontal=True)
+factories = c3.multiselect("Factories", sorted(lib["factory"].unique()), placeholder="All factories")
+grips = c4.multiselect("Grip", ["2f", "5f", "generic", "unsure"], placeholder="Any grip")
+task = c5.text_input("Task contains", placeholder="e.g. fasten")
+
+eps = preview(light, factories or None, grips or None, task)
+secs = float((eps["t_end"] - eps["t_start"]).sum()) if not eps.empty else 0.0
+fps = 15.0
+kpi_strip([
+    ("Episodes", num(len(eps)), "usable stretches of 3 s or more"),
+    ("Duration", num(mmss(secs)), "minutes of two-hand tracks"),
+    ("Frames", num(f"{int(secs * fps):,}"), f"at {fps:.0f} frames per second"),
+    ("Tasks", num(eps["task"].nunique() if not eps.empty else 0), "from steps, else held object"),
+    ("Clips", num(eps["clip"].nunique() if not eps.empty else 0), f"of {len(lib)} indexed"),
+    ("Red seconds", num(0), "never exported"),
+])
+
+left, right = st.columns([3, 1], vertical_alignment="center")
+if eps.empty:
+    left.html('<div class="ev-empty">No usable stretch matches these filters. Try green + yellow, or fewer '
+              'filters. Clips that are not graded yet only count as yellow.</div>')
+else:
+    left.caption(f"Preview of the first {min(len(eps), 8)} of {len(eps)} episodes")
+    show = eps.head(8).assign(start=lambda d: d["t_start"].map(mmss), end=lambda d: d["t_end"].map(mmss),
+                              length=lambda d: (d["t_end"] - d["t_start"]).map(lambda s: f"{s:.1f} s"),
+                              grips=lambda d: d["grip_types"].map(lambda g: ", ".join(g) or "—"))
+    left.dataframe(show[["clip", "start", "end", "length", "task", "grips"]], hide_index=True, width="stretch")
+build = right.button("Build dataset", type="primary", disabled=eps.empty or not name.strip(), width="stretch")
+
+if build:
+    with st.spinner(f"Writing exports/{name} (blurring faces in every episode video)…"):
+        try:
+            st.session_state.last_export = export(name.strip(), light, factories or None, grips or None, task)
+        except ValueError as e:
+            st.error(str(e))
+
+done = st.session_state.get("last_export")
+if done:
+    root = Path(done["path"])
+    st.html(f'<div class="ev-panel" style="margin-top:24px"><h3>Built {escape(done["name"])}</h3>'
+            f'<p style="color:#8a8c92;margin:0"><span class="ev-num">{done["episodes"]}</span> episodes · '
+            f'<span class="ev-num">{done["frames"]:,}</span> frames · <span class="ev-num">{mmss(done["seconds"])}'
+            f'</span> · <span class="ev-num">{done["red_seconds"]:.0f}</span> red seconds · '
+            f'<code>{escape(str(root))}</code></p></div>')
+    sheet, data = st.tabs(["Data sheet", "First episode (parquet)"])
+    with sheet:
+        st.markdown((root / "datasheet.md").read_text(encoding="utf-8"))
+    with data:
+        first = pd.read_parquet(root / "data" / "chunk-000" / "episode_000000.parquet")
+        st.caption(f"{len(first)} rows × {len(first.columns)} columns · `pd.read_parquet(...)`")
+        st.dataframe(first.head(20), hide_index=True, width="stretch")
+
+products = query.sql("SELECT name, path, filter_json, n_items, created_at FROM products WHERE kind = 'dataset' "
+                     "ORDER BY created_at DESC")
+if not products.empty:
+    st.html('<h3 style="font-size:16px;font-weight:600;margin:32px 0 8px">Earlier datasets</h3>')
+    products["light"] = products["filter_json"].map(lambda f: json.loads(f).get("light", "—"))
+    st.dataframe(products[["name", "n_items", "light", "created_at", "path"]].rename(
+        columns={"n_items": "episodes", "created_at": "built"}), hide_index=True, width="stretch")

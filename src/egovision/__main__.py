@@ -73,7 +73,13 @@ def main(argv: list[str] | None = None) -> int:
         build()
     elif a.cmd == "export":
         from .products.export import export
-        export(a.name, a.light)
+        try:
+            s = export(a.name, a.light)
+        except ValueError as e:
+            print(e)
+            return 1
+        print(f"{s['path']}: {s['episodes']} episodes, {s['frames']} frames, {s['seconds']} s, "
+              f"{s['tasks']} tasks, {s['red_seconds']:.0f} red seconds")
     return 0
 
 
