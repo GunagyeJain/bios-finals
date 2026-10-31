@@ -1,3 +1,27 @@
+# Theme from docs/05-solution/ui-design.md §1 (dark "data terminal": cards darker than the ground,
+# one blue accent used only as a 1px selection line, figures in a monospace).
 [theme]
 base = "dark"
-primaryColor = "#3BA3FF"
+backgroundColor = "#171719"
+secondaryBackgroundColor = "#131217"
+textColor = "#ffffff"
+primaryColor = "#4a8ad6"
+linkColor = "#ffffff"
+linkUnderline = false
+borderColor = "#222224"
+dataframeBorderColor = "#1b1a1f"
+dataframeHeaderBackgroundColor = "#131217"
+dataframeHeaderTextColor = "#8a8c92"
+greenColor = "#44a282"
+yellowColor = "#d9a441"
+redColor = "#e5566f"
+blueColor = "#4a8ad6"
+font = "'Public Sans':https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap, system-ui, sans-serif"
+codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap, monospace"
+baseFontSize = 14
+baseRadius = "6px"
+buttonRadius = "full"
+showWidgetBorder = true
+
+[client]
+toolbarMode = "minimal"

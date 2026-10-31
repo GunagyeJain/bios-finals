@@ -60,3 +60,10 @@ def test_h264_writer_roundtrip(tmp_path):
     cap = cv2.VideoCapture(str(path))
     assert int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) == 10
     assert int(cap.get(cv2.CAP_PROP_FOURCC)).to_bytes(4, "little") in (b"avc1", b"h264")
+
+
+def test_light_runs_merges_touching_segments_longest_first():
+    seg = pd.DataFrame({"t_start": [0.0, 1.0, 2.0, 5.0], "t_end": [1.0, 2.0, 3.0, 9.0],
+                        "light": ["red", "red", "green", "red"], "reasons": ["dark", "hands_out", "", "dark"]})
+    runs = query.light_runs(seg, "red")
+    assert runs[["t_start", "t_end", "reasons"]].values.tolist() == [[5.0, 9.0, "dark"], [0.0, 2.0, "dark · hands_out"]]

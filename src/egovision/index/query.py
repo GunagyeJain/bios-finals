@@ -24,9 +24,15 @@ def sql(query: str, params: tuple = ()) -> pd.DataFrame:
 
 def library() -> pd.DataFrame:
     """One row per clip with alert counts, for the Library table."""
-    return sql("""SELECT c.*, COALESCE(a.n, 0) AS n_alerts FROM clips c
+    return sql("""SELECT c.*, COALESCE(a.n, 0) AS n_alerts, COALESCE(k.n, 0) AS n_contacts FROM clips c
                   LEFT JOIN (SELECT clip, COUNT(*) AS n FROM alerts GROUP BY clip) a USING (clip)
+                  LEFT JOIN (SELECT clip, COUNT(*) AS n FROM contacts GROUP BY clip) k USING (clip)
                   ORDER BY c.factory, c.seq_in_factory, c.clip""")
+
+
+def all_segments() -> pd.DataFrame:
+    """Light segments of every clip, for the Library's quality strips."""
+    return sql("SELECT clip, t_start, t_end, light FROM segments ORDER BY clip, t_start")
 
 
 def kpis(lib: pd.DataFrame) -> dict[str, float | None]:
@@ -72,6 +78,22 @@ def at(df: pd.DataFrame, t: float, start: str = "t_start", end: str = "t_end") -
     if df.empty:
         return df
     return df[(df[start] <= t) & ((t < df[end]) | ((t == df[end]) & (df[end] == df[end].max())))]
+
+
+def light_runs(segments: pd.DataFrame, light: str) -> pd.DataFrame:
+    """Merge touching segments of one light into stretches, longest first, with their reasons joined."""
+    s = segments[segments["light"] == light].sort_values("t_start")
+    runs = []
+    for r in s.itertuples():
+        reasons = {x for x in (r.reasons or "").split(";") if x}
+        if runs and r.t_start - runs[-1]["t_end"] < 1e-6:
+            runs[-1]["t_end"] = r.t_end
+            runs[-1]["reasons"] |= reasons
+        else:
+            runs.append({"t_start": r.t_start, "t_end": r.t_end, "reasons": reasons})
+    out = pd.DataFrame([{**r, "reasons": " · ".join(sorted(r["reasons"]))} for r in runs],
+                       columns=["t_start", "t_end", "reasons"])
+    return out.assign(length=out["t_end"] - out["t_start"]).sort_values("length", ascending=False, kind="stable")
 
 
 def flagged_runs(frames: pd.DataFrame, gap_s: float = 0.5) -> pd.DataFrame:

@@ -28,22 +28,26 @@ def _run(page: str, **state):
     return at.run()
 
 
-def test_library_renders(indexed):
+def _html(at) -> str:
+    return " ".join(e.proto.body for e in at.get("html"))
+
+
+def test_library_renders_through_the_router(indexed):
     at = _run("Home.py")
     assert not at.exception
-    assert [m.label for m in at.metric][:2] == ["Clips", "Green time"]
+    page = _html(at)
+    assert "<h1>Library</h1>" in page and "fixture_001" in page and "ev-strip" in page
 
 
 def test_clip_review_renders_and_shows_moment(indexed):
     at = _run("pages/1_Clip_review.py", clip="fixture_001", t=1.5)
     assert not at.exception
-    text = " ".join(m.value for m in at.markdown)
-    assert "This moment · 0:02" in text
-    assert any("holds screwdriver" in m.value for m in at.markdown)
+    page = _html(at)
+    assert "This moment · 0:01.5" in page and "screwdriver" in page and "Usable" in page
 
 
 def test_empty_state_without_index(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "INDEX_DB", tmp_path / "none.db")
     monkeypatch.syspath_prepend(str(APP))
     at = _run("Home.py")
-    assert not at.exception and "No index yet" in at.info[0].value
+    assert not at.exception and "No clips indexed yet" in _html(at)

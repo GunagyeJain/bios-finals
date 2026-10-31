@@ -3,11 +3,13 @@
 _Owner: Gunagye (shell, Library, Clip review, Export) · Shefali (Work Modules, Metrics pages). Flow: `app-flow.md`._
 
 ## 1. Rules
-- Streamlit multipage: `app/Home.py` + `app/pages/1_Clip_review.py`, `2_Export.py`, `3_Work_modules.py`, `4_Metrics.py`.
+- Streamlit: `app/Home.py` is the router (`st.navigation`) and draws the shared top bar; screens are `app/library.py` + `app/pages/1_Clip_review.py`, `2_Export.py`, `3_Work_modules.py`, `4_Metrics.py`. Pages don't call `st.set_page_config`; they start straight with their title (`components.title`).
+- Look ("data terminal", dark): ground `#171719`, cards `#131217`, one blue accent `#4a8ad6` used only as the 1px line under the selected tab/page/toggle. Text in Public Sans, every figure and timecode in IBM Plex Mono. Styles in `app/style.css`; theme in `.streamlit/config.toml`.
+- Colour only on data: usable `#44a282` · check `#d9a441` · unusable `#e5566f`; left hand `#4a8ad6`, right hand `#f2f2f3`. No gradients, glows, icon tiles or emoji.
+- Signature element: each clip's **quality strip** (its seconds as a green/yellow/red film strip) in the Library and on the review timeline.
 - Reads only `outputs/index.db`, `hands.jsonl`, `render.mp4`. **Never runs the pipeline** (keeps the demo instant).
-- Wide layout, dark theme (`.streamlit/config.toml`). One accent per light: 🟢 `#2E9E5B` · 🟡 `#E0A800` · 🔴 `#D64545`; hand colours left `#3BA3FF`, right `#FF8A3B`.
 - Every number has a unit and a tooltip saying how it was measured.
-- Shared helpers in `app/components.py`: `light_bar()`, `event_timeline()`, `video_at(t)`, `kpi_row()`.
+- Shared helpers in `app/components.py`: `title()`, `kpi_strip()`, `strip()`, `clip_table()`, `moment_panel()`, `event_timeline()`, `video_at()`; data from `egovision.index.query`. Restart Streamlit after editing `components.py` (it is not hot-reloaded).
 - Slides use our own mock-ups only; no real frames in anything public.
 
 ## 2. Home = Library
