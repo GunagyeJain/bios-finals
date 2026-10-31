@@ -6,9 +6,9 @@
 **You unblock:** everyone (real hands). Push A1 as early as possible.
 
 ## A1 · MediaPipe baseline + mirror check (1.5 h) · P0
-- [ ] `hands/baseline.py: run(clip)`: starter code p.10 (Tasks API, VIDEO mode, `num_hands=2`, conf 0.4), `clips_480p`, `config.FRAME_STEP`. Write `hands_baseline.jsonl` with `schema.Hand` (source `"mediapipe"`, `kp3d` = world landmarks). Never post-process this file.
-- [ ] Download `hand_landmarker.task` to `models/` (git-ignored); path constant in `hands/params.py`.
-- [ ] `python -m egovision.hands.baseline --clip X --preview` writes `outputs/<clip>/preview_baseline.mp4` (starter step 7 drawing, left blue / right orange, side label).
+- [x] `hands/baseline.py: run(clip)`: starter code p.10 (Tasks API, VIDEO mode, `num_hands=2`, conf 0.4), `clips_480p`, `config.FRAME_STEP`. Write `hands_baseline.jsonl` with `schema.Hand` (source `"mediapipe"`, `kp3d` = world landmarks). Never post-process this file.
+- [x] Download `hand_landmarker.task` to `models/` (git-ignored); path constant in `hands/params.py`.
+- [x] `python -m egovision.hands.baseline --clip X --preview` writes `outputs/<clip>/preview_baseline.mp4` (starter step 7 drawing, left blue / right orange, side label).
 - [ ] Mirror check on 3 clips: are MediaPipe's left/right backwards on head-cam video? Put `MIRROR = True/False` in `hands/params.py`; append the answer to `docs/08-log/decisions.md`. Baseline stays raw; the swap happens in A2.
 - [ ] Run `python -m egovision run --all --stage hands_baseline`; note FPS.
 - Done when: `python -m egovision check --clip <real clip>` OK for `hands_baseline`; a test for the JSON conversion on a fake MediaPipe result.
