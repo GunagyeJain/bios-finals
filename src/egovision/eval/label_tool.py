@@ -4,8 +4,8 @@ Writes eval/labels/<clip>__<labeller>.json (coordinates only). Frame images stay
 How to label: run the command above (add `--shared` for the common 30-frame set). A window opens on the
 first frame. For each visible hand, click the wrist first, then the 5 fingertips (thumb, index, middle,
 ring, little; a hidden tip goes where you think it is), then press `l` or `r` for its side. A second hand
-starts with the next click. Press `n` to save the frame and go on; a frame with no clicks is saved as
-"no hands", which is a valid label. `s` skips an unusable frame, `u` undoes the last click, `t` then a
+starts with the next click. Press Enter (or `n`) to save the frame and go on; a frame with no clicks is
+saved as "no hands", which is a valid label. `x` skips an unusable frame, `u` undoes the last click, `t` then a
 digit toggles a tag (1 blur, 2 glove, 3 dark, 4 overlap, 5 reentry), `q` saves and quits. Every frame is
 written to disk at once, so quitting and running the same command again resumes where you stopped.
 """
@@ -261,7 +261,7 @@ def draw(img, d: FrameDraft, scale: float, header: str, message: str):
     k = len(d.hands[-1].points) % N_POINTS if d.hands else 0
     need = POINT_NAMES[k] + (" of a new hand" if k == 0 and d.hands else "")
     lines = [header, f"next click: {need} | tags: {', '.join(d.tags) or '-'}",
-             "n save  s skip  u undo  l/r side  t+1..5 tag  q quit", message]
+             "ENTER save + next   x skip   u undo   l/r side   t+1..5 tag   q quit", message]
     for i, text in enumerate(lines):
         cv2.putText(out, text, (8, 20 + 22 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                     (80, 200, 255) if i == 3 else (235, 235, 235), 1, cv2.LINE_AA)
@@ -297,11 +297,11 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
             d.undo()
         elif ch == "t":
             state["tag_mode"] = True
-        elif ch == "s":
+        elif ch == "x":
             return "skip"
         elif ch in ("q", "\x1b"):
             return "quit"
-        elif ch == "n":
+        elif ch in ("n", "\r", "\n", " "):
             state["msg"] = d.problem() or ""
             if not state["msg"]:
                 return "next"
@@ -342,9 +342,11 @@ def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> 
                 skipped.add(frame)
                 skip_file.parent.mkdir(parents=True, exist_ok=True)
                 skip_file.write_text(" ".join(map(str, sorted(skipped))) + "\n")
+                print(f"skipped frame {frame}")
                 continue
             save_labels(out, data, d.to_label(width, height))
             done.add(frame)
+            print(f"saved frame {frame}: {len(d.hands)} hand(s), tags {d.tags or '-'}  ({len(done)}/{goal})")
     finally:
         cv2.destroyAllWindows()
         cv2.waitKey(1)
