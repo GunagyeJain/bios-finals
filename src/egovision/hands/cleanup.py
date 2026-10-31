@@ -98,20 +98,33 @@ def _filter() -> OneEuro:
     return OneEuro(params.ONE_EURO_MIN_CUTOFF, params.ONE_EURO_BETA, params.ONE_EURO_D_CUTOFF)
 
 
-def smooth(track: list[Obs]) -> list[Obs]:
-    """One-Euro per coordinate. The filter restarts after a gap so it never drags across one."""
-    out: list[Obs] = []
+def _one_way(track: list[Obs]) -> list[tuple[np.ndarray, np.ndarray | None]]:
+    """One-Euro along a track. The filter restarts after a gap so it never drags across one."""
+    out: list[tuple[np.ndarray, np.ndarray | None]] = []
     f2, f3, prev_f, prev_t = _filter(), _filter(), None, 0.0
     for f, t, h in track:
-        if prev_f is None or f - prev_f - 1 > params.MAX_GAP_FRAMES:
+        if prev_f is None or abs(f - prev_f) - 1 > params.MAX_GAP_FRAMES:
             f2, f3 = _filter(), _filter()
-        dt = max(t - prev_t, 1e-3)
-        kp2d = f2(np.asarray(h.kp2d, dtype=float), dt).tolist()
-        kp3d = h.kp3d
-        if kp3d is not None:
-            kp3d = (f3(np.asarray(kp3d, dtype=float) * params.KP3D_FILTER_SCALE, dt) / params.KP3D_FILTER_SCALE).tolist()
-        out.append((f, t, replace(h, kp2d=kp2d, kp3d=kp3d, bbox=bbox_of(kp2d))))
+        dt = max(abs(t - prev_t), 1e-3)
+        kp2d = f2(np.asarray(h.kp2d, dtype=float), dt)
+        kp3d = None
+        if h.kp3d is not None:
+            kp3d = f3(np.asarray(h.kp3d, dtype=float) * params.KP3D_FILTER_SCALE, dt) / params.KP3D_FILTER_SCALE
+        out.append((kp2d, kp3d))
         prev_f, prev_t = f, t
+    return out
+
+
+def smooth(track: list[Obs]) -> list[Obs]:
+    """One-Euro per coordinate, forwards and backwards, averaged. A causal filter trails a moving hand;
+    we process whole clips, so the two passes' opposite lags cancel."""
+    ahead = _one_way(track)
+    behind = _one_way(track[::-1])[::-1]
+    out: list[Obs] = []
+    for (f, t, h), (a2, a3), (b2, b3) in zip(track, ahead, behind):
+        kp2d = ((a2 + b2) / 2).tolist()
+        kp3d = None if a3 is None or b3 is None else ((a3 + b3) / 2).tolist()
+        out.append((f, t, replace(h, kp2d=kp2d, kp3d=kp3d, bbox=bbox_of(kp2d))))
     return out
 
 

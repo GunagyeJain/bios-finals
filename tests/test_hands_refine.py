@@ -164,7 +164,24 @@ def test_one_euro_follows_a_fast_move():
 
 def test_smoothing_restarts_after_a_long_gap():
     obs = [(0, 0.0, hand("left", 400)), (2, 2 / FPS, hand("left", 400)), (100, 100 / FPS, hand("left", 1200))]
-    assert cleanup.smooth(obs)[-1][2].kp2d[0][0] == pytest.approx(1200)
+    out = cleanup.smooth(obs)
+    assert out[-1][2].kp2d[0][0] == pytest.approx(1200) and out[0][2].kp2d[0][0] == pytest.approx(400)
+
+
+def test_two_way_smoothing_has_no_lag_on_a_steady_move():
+    obs = [(i, i / FPS, hand("left", 400 + 15.0 * i)) for i in range(120)]
+    one_way = cleanup._one_way(obs)[60][0][0, 0]
+    both = cleanup.smooth(obs)[60][2].kp2d[0][0]
+    truth = 400 + 15.0 * 60
+    assert abs(both - truth) < 1.0 < abs(one_way - truth)
+
+
+def test_two_way_smoothing_still_reduces_noise():
+    rng = np.random.default_rng(2)
+    obs = [(i, i / FPS, hand("left", 400 + rng.normal(0, 3))) for i in range(200)]
+    xs = np.array([o[2].kp2d[0][0] for o in cleanup.smooth(obs)])
+    raw = np.array([o[2].kp2d[0][0] for o in obs])
+    assert np.diff(xs).std() < np.diff(raw).std() / 2
 
 
 # ---------- flags ----------
