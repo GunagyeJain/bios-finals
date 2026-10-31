@@ -13,6 +13,8 @@ same labels and keys in the browser, tags on keys 1 to 5 directly, Ctrl-C in the
 Faster: run `python -m egovision.eval.prelabel` with the same --clip/--labeller/--n first. Suggested
 points then show as hollow rings: check each one, click near a ring to move it, `c` removes a wrong hand,
 always press `l`/`r`. Each saved hand records `prefill` and `edited`. --shared frames never get suggestions.
+Fix earlier frames: add `--redo N` to reopen your first N labelled frames with their saved hands drawn as
+rings; add a missing hand by clicking its points, Enter saves, `x` keeps a frame as it was.
 """
 from __future__ import annotations
 
@@ -141,6 +143,8 @@ class HandDraft:
     prefill: str | None = None                    # model that suggested this hand, None = clicked by hand
     moved: set[int] = field(default_factory=set)  # indices of suggested points the labeller replaced
     sug_side: str | None = None                   # side the model guessed (None = unsure)
+    base: bool = False                            # starts from given points (suggestion or saved label): clicks move them
+    was_edited: bool = False                      # saved label being redone was already edited
 
     @property
     def complete(self) -> bool:
@@ -150,7 +154,8 @@ class HandDraft:
     def edited(self) -> bool:
         """A suggested hand the labeller changed: a point moved, or a guessed side flipped.
         Filling in a side the model left empty is not an edit."""
-        return bool(self.prefill) and (bool(self.moved) or (self.sug_side is not None and self.side != self.sug_side))
+        return bool(self.prefill) and (self.was_edited or bool(self.moved)
+                                       or (self.sug_side is not None and self.side != self.sug_side))
 
 
 @dataclass
@@ -161,18 +166,21 @@ class FrameDraft:
     active: int = -1                              # hand that l/r, c and undo act on
 
     @staticmethod
-    def with_suggestions(frame: int, suggestions: list[dict], prefill: str) -> "FrameDraft":
-        """Draft pre-filled with model hands ({points: 6 x [x, y], side: left|right|None})."""
+    def with_suggestions(frame: int, suggestions: list[dict], prefill: str | None) -> "FrameDraft":
+        """Draft pre-filled with starting hands {points: 6 x [x, y], side}: model suggestions, or saved
+        hands when a frame is redone (those carry their own `prefill` and `edited`)."""
         d = FrameDraft(frame)
         for sug in suggestions[:MAX_HANDS]:
             side = sug.get("side")
-            d.hands.append(HandDraft([list(map(float, pt)) for pt in sug["points"]], side, prefill, sug_side=side))
+            d.hands.append(HandDraft([list(map(float, pt)) for pt in sug["points"]], side,
+                                     sug.get("prefill", prefill), sug_side=side, base=True,
+                                     was_edited=sug.get("edited", False)))
         return d
 
     def _nearest_suggested(self, x: float, y: float, radius: float) -> tuple[int, int] | None:
         best, best_d = None, radius
         for i, h in enumerate(self.hands):
-            if not h.prefill:
+            if not h.base:
                 continue
             for k, (px, py) in enumerate(h.points):
                 dist = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
@@ -184,7 +192,7 @@ class FrameDraft:
         """Continue a hand being clicked; else move the nearest suggested point within `radius`;
         else start a new hand. False when that would be a third hand."""
         pt = [round(x, 1), round(y, 1)]
-        manual_open = self.hands and not self.hands[-1].prefill and len(self.hands[-1].points) < N_POINTS
+        manual_open = self.hands and not self.hands[-1].base and len(self.hands[-1].points) < N_POINTS
         if not manual_open:
             near = self._nearest_suggested(x, y, radius)
             if near:
@@ -212,7 +220,7 @@ class FrameDraft:
 
     def undo(self) -> None:
         """Remove the last clicked point of a hand clicked by hand. Suggested hands: use clear_hand."""
-        if not self.hands or self.hands[-1].prefill:
+        if not self.hands or self.hands[-1].base:
             return
         self.hands[-1].points.pop()
         if not self.hands[-1].points:
@@ -339,8 +347,8 @@ COLOURS = {"left": (60, 160, 255), "right": (255, 140, 40), None: (31, 210, 255)
 
 
 def next_click(d: FrameDraft) -> str:
-    if d.hands and d.hands[-1].prefill:
-        return "check the hollow suggested points; click near one to move it, c clears a wrong hand"
+    if d.hands and d.hands[-1].base:
+        return "check the hollow points; click near one to move it, c clears a wrong hand"
     k = len(d.hands[-1].points) % N_POINTS if d.hands else 0
     return POINT_NAMES[k] + (" of a new hand" if k == 0 and d.hands else "")
 
@@ -355,7 +363,7 @@ def draw(img, d: FrameDraft, scale: float, header: str, message: str):
         for p in pts[1:]:
             cv2.line(out, pts[0], p, col, 1, cv2.LINE_AA)
         for k, p in enumerate(pts):
-            hollow = h.prefill and k not in h.moved          # suggested point the labeller has not moved
+            hollow = h.base and k not in h.moved             # given point the labeller has not moved
             cv2.circle(out, p, 6 if k == 0 else 4, col, 2 if hollow else -1, cv2.LINE_AA)
         if pts:
             cv2.putText(out, (h.side or "?")[0].upper(), (pts[0][0] + 8, pts[0][1] + 16),
@@ -418,7 +426,7 @@ def label_frame(img, d: FrameDraft, scale: float, header: str, radius: float = 0
 class Session:
     """Which frames to label, what is done, and saving. Shared by the OpenCV window and the browser page."""
 
-    def __init__(self, clip: str, labeller: str, n: int, shared: bool):
+    def __init__(self, clip: str, labeller: str, n: int, shared: bool, redo: int = 0):
         self.clip, self.labeller = clip, labeller.strip().lower()
         self.width, self.height, _n_frames, self.fps, _step = clip_info(clip)
         self.todo = frame_order(clip, self.labeller, n, shared)
@@ -431,13 +439,45 @@ class Session:
         self.skipped = set(map(int, self.skip_file.read_text().split())) if self.skip_file.exists() else set()
         self.done = {f["frame"] for f in self.data["frames"]}
         self.goal = len(self.todo) if shared else n
+        # redo: reopen the first `redo` labelled frames (labelling order) with their saved hands; resumable
+        self.redo_file = FRAMES_DIR / clip / f"redo__{self.labeller}{'__shared' if shared else ''}.txt"
+        if redo:
+            self._write_redo([f for f in self.todo if f in self.done][:redo])
+        self.redo = [int(f) for f in self.redo_file.read_text().split()] if self.redo_file.exists() else []
+        if self.redo:
+            print(f"redo: {len(self.redo)} saved frames reopen first (x keeps a frame as saved)")
+
+    def _write_redo(self, frames: list[int]) -> None:
+        if frames:
+            self.redo_file.parent.mkdir(parents=True, exist_ok=True)
+            self.redo_file.write_text(" ".join(map(str, frames)) + "\n")
+        else:
+            self.redo_file.unlink(missing_ok=True)
+
+    def _redo_done(self, frame: int) -> None:
+        self.redo = [f for f in self.redo if f != frame]
+        self._write_redo(self.redo)
 
     def next_frame(self) -> int | None:
+        if self.redo:
+            return self.redo[0]
         if len(self.done) >= self.goal:
             return None
         return next((f for f in self.todo if f not in self.done and f not in self.skipped), None)
 
+    def starting_hands(self, frame: int) -> list[dict]:
+        """Hands a frame opens with: the saved ones when redoing it, else model suggestions."""
+        if frame in self.redo:
+            saved = next(f for f in self.data["frames"] if f["frame"] == frame)
+            return [{"points": [h["wrist"], *h["tips"]], "side": h["side"], "prefill": h["prefill"],
+                     "edited": h["edited"]} for h in saved["hands"]]
+        return self.suggestions.get(frame, [])
+
     def draft(self, frame: int) -> FrameDraft:
+        if frame in self.redo:
+            d = FrameDraft.with_suggestions(frame, self.starting_hands(frame), None)
+            d.tags = next(f for f in self.data["frames"] if f["frame"] == frame)["tags"][:]
+            return d
         if frame in self.suggestions:
             return FrameDraft.with_suggestions(frame, self.suggestions[frame], self.prefill)
         return FrameDraft(frame)
@@ -447,23 +487,31 @@ class Session:
         return PREFILL_RADIUS * self.width
 
     def header(self, frame: int) -> str:
+        if frame in self.redo:
+            return f"{self.clip}  frame {frame} ({frame / self.fps:.1f} s)  REDO: {len(self.redo)} left"
         return f"{self.clip}  frame {frame} ({frame / self.fps:.1f} s)  labelled {len(self.done)}/{self.goal}"
 
     def save(self, d: FrameDraft) -> None:
         save_labels(self.out, self.data, d.to_label(self.width, self.height))
         self.done.add(d.frame)
+        if d.frame in self.redo:
+            self._redo_done(d.frame)
         print(f"saved frame {d.frame}: {len(d.hands)} hand(s), tags {d.tags or '-'}  ({len(self.done)}/{self.goal})")
 
     def skip(self, frame: int) -> None:
+        if frame in self.redo:                     # redo: x keeps the saved label as it is
+            self._redo_done(frame)
+            print(f"kept frame {frame} as saved")
+            return
         self.skipped.add(frame)
         self.skip_file.parent.mkdir(parents=True, exist_ok=True)
         self.skip_file.write_text(" ".join(map(str, sorted(self.skipped))) + "\n")
         print(f"skipped frame {frame}")
 
 
-def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> Path:
+def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None, redo: int = 0) -> Path:
     import cv2
-    s = Session(clip, labeller, n, shared)
+    s = Session(clip, labeller, n, shared, redo)
     scale = scale or min(2.0, FIT[0] / s.width, FIT[1] / s.height)
     cv2.namedWindow(WINDOW, cv2.WINDOW_AUTOSIZE)
     try:
@@ -492,20 +540,21 @@ def web_hand(h: dict, suggestions: list[dict], prefill: str | None) -> HandDraft
     started from; what was moved or re-sided is worked out here against that suggestion."""
     points = [[round(float(x), 1), round(float(y), 1)] for x, y in h["points"]]
     i = h.get("sug")
-    if i is None or not prefill or not 0 <= i < len(suggestions):
+    if i is None or not 0 <= i < len(suggestions):
         return HandDraft(points, h.get("side"))
     sug = suggestions[i]
     moved = {k for k, (a, b) in enumerate(zip(points, sug["points"]))
              if abs(a[0] - b[0]) > 0.5 or abs(a[1] - b[1]) > 0.5}
-    return HandDraft(points, h.get("side"), prefill, moved, sug.get("side"))
+    return HandDraft(points, h.get("side"), sug.get("prefill", prefill), moved, sug.get("side"), base=True,
+                     was_edited=sug.get("edited", False))
 
 
 # ---------- browser page (--web): same labels, for when the OpenCV window gets no keys or clicks ----------
-def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
+def serve(clip: str, labeller: str, n: int, shared: bool, port: int, redo: int = 0) -> None:
     import cv2
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     sys.stdout.reconfigure(line_buffering=True)          # progress lines show up even when piped
-    s = Session(clip, labeller, n, shared)
+    s = Session(clip, labeller, n, shared, redo)
     from .label_page import PAGE
     page = PAGE.encode()
 
@@ -514,7 +563,9 @@ def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
         return {"clip": clip, "labeller": s.labeller, "frame": frame, "done": len(s.done), "goal": s.goal,
                 "width": s.width, "height": s.height, "tags": TAGS, "out": str(s.out.relative_to(config.ROOT)),
                 "header": s.header(frame) if frame is not None else f"{clip}: all {s.goal} frames labelled",
-                "prefill": s.prefill, "suggestions": s.suggestions.get(frame, []), "radius": s.radius}
+                "prefill": s.prefill, "suggestions": s.starting_hands(frame) if frame is not None else [],
+                "redo": frame in s.redo, "radius": s.radius,
+                "tags_saved": s.draft(frame).tags if frame in s.redo else []}
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, code: int, body: bytes, kind: str) -> None:
@@ -553,7 +604,7 @@ def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
                 return self._json(state())
             if self.path != "/api/save":
                 return self._json({"error": "not found"}, 404)
-            d = FrameDraft(frame, [web_hand(h, s.suggestions.get(frame, []), s.prefill) for h in body.get("hands", [])],
+            d = FrameDraft(frame, [web_hand(h, s.starting_hands(frame), s.prefill) for h in body.get("hands", [])],
                            [t for t in body.get("tags", []) if t in TAGS])
             if d.problem():
                 return self._json({"error": d.problem()}, 400)
@@ -579,15 +630,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--shared", action="store_true", help=f"the common {SHARED_N}-frame set (same frames for everyone)")
     ap.add_argument("--web", action="store_true", help="label in the browser instead of an OpenCV window")
     ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--redo", type=int, default=0, metavar="N",
+                    help="reopen your first N labelled frames with their saved hands, to fix them")
     ap.add_argument("--debug", action="store_true", help="print every key and click")
     ap.add_argument("--scale", type=float, default=None, help="window zoom (default: fit the frame in 1200x660)")
     a = ap.parse_args(argv)
     global DEBUG
     DEBUG = a.debug
     if a.web:
-        serve(a.clip, a.labeller, a.n, a.shared, a.port)
+        serve(a.clip, a.labeller, a.n, a.shared, a.port, a.redo)
     else:
-        run(a.clip, a.labeller, a.n, a.shared, a.scale)
+        run(a.clip, a.labeller, a.n, a.shared, a.scale, a.redo)
     return 0
 
 

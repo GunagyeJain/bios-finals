@@ -75,10 +75,12 @@ async function load(s) {
   st = s || await (await fetch("/api/state")).json();
   // suggested hands start pre-filled; sug = index of the suggestion, moved = points the labeller replaced
   hands = (st.suggestions || []).map((g, i) => ({ points: g.points.map(p => [...p]), side: g.side, sug: i, moved: new Set() }));
-  tags = []; active = -1;
-  $("sughelp").textContent = hands.length ? `Hollow points are ${st.prefill} suggestions: check each one. ` +
+  tags = [...(st.tags_saved || [])]; active = -1;
+  $("sughelp").textContent = st.redo ? "Redo: your saved hands are the rings. Add the missing hand by clicking its 6 points, " +
+    "click near a ring to move it, C removes a hand. Enter saves, X keeps the frame as it was."
+    : hands.length ? `Hollow points are ${st.prefill} suggestions: check each one. ` +
     "Click near a point to move it, C removes a wrong hand, L/R fixes the side." : "";
-  $("title").textContent = st.clip + (st.frame === null ? "" : "  frame " + st.frame);
+  $("title").textContent = st.clip + (st.frame === null ? "" : "  frame " + st.frame) + (st.redo ? "  (redo)" : "");
   $("progress").textContent = `${st.done}/${st.goal} labelled by ${st.labeller} · ${st.out}`;
   if (st.frame === null) { say("All frames for this run are labelled. You can close this tab.", true); draw(); return; }
   img = new Image();
@@ -113,9 +115,9 @@ function draw() {
   }
   const k = hands.length ? cur().points.length % 6 : 0;
   $("next").textContent = st && st.frame === null ? "done"
-    : hands.length && cur().sug != null ? "check the suggestion" : NAMES[k] + (k === 0 && hands.length ? " of a new hand" : "");
+    : hands.length && cur().sug != null ? (st.redo ? "wrist of the missing hand, or Enter" : "check the suggestion") : NAMES[k] + (k === 0 && hands.length ? " of a new hand" : "");
   $("hands").innerHTML = hands.length ? hands.map((h, i) =>
-    `<div>${hands.at(active) === h ? "&gt; " : ""}Hand ${i + 1}${h.sug != null ? ` (suggested, ${h.moved.size} moved)` : ""}: ` +
+    `<div>${hands.at(active) === h ? "&gt; " : ""}Hand ${i + 1}${h.sug != null ? ` (${st.redo ? "saved" : "suggested"}, ${h.moved.size} moved)` : ""}: ` +
     `${h.points.length}/6 points, side <b style="color:${COL[h.side]}">${h.side || "not set"}</b></div>`).join("")
     : "<div>none yet (saving now records “no hands”)</div>";
   const side = hands.length ? act().side : null;
@@ -158,8 +160,8 @@ async function post(path, body) {
     const j = await r.json();
     if (r.status === 400) return say(j.error);
     if (r.status === 409) { await load(j); return say(j.error); }
-    const prev = st.frame; await load(j);
-    say(path.endsWith("save") ? `Saved frame ${prev}.` : `Skipped frame ${prev}.`, true);
+    const prev = st.frame, wasRedo = st.redo; await load(j);
+    say(path.endsWith("save") ? `Saved frame ${prev}.` : wasRedo ? `Kept frame ${prev} as saved.` : `Skipped frame ${prev}.`, true);
   } catch (err) { say("Could not reach the label server. Is it still running in the terminal?"); }
   finally { busy = false; }
 }
