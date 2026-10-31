@@ -23,7 +23,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 ## In progress
 | Who | What |
 |---|---|
-| Gunagye | G2 contacts, G3 index, G5a app on fixtures done → waiting at checkpoint G-2 |
+| Gunagye | G2, G3, G5a (redesigned), G4 export done → waiting at checkpoint G-3 |
 | Abhijay | A1 done: baseline on all 40 clips, `MIRROR = False` → waiting on checkpoint A-1, then A2 |
 | Bhavyam | B4 face redaction scanned on all 40 clips; human 20-frame spot check in progress → checkpoint B-1 |
 | Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |

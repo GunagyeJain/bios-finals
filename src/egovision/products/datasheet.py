@@ -66,13 +66,14 @@ def write(root: Path, summary: dict, episodes: list[dict], clips: pd.DataFrame, 
         "## What is in it",
         f"- {summary['episodes']} episodes, {summary['frames']:,} frames, {summary['seconds']:.0f} s of "
         f"two-hand tracks from {summary['clips']} clips, {summary['tasks']} tasks.",
-        f"- Light: {filters['light']} only (red never exported). Episodes are usable stretches of at least "
+        f"- Light: {'green only' if filters['light'] == 'green' else 'green and yellow'} (red never exported). "
+        "Episodes are usable stretches of at least "
         "3 s, cut at step boundaries.",
         f"- Red seconds inside episodes: {summary['red_seconds']:.0f}.",
         f"- Filters: factories {filters['factories'] or 'all'}, grips {filters['grips'] or 'all'}, "
         f"task contains '{filters['task_contains'] or '-'}'.", "",
         "| Factory | Clips | Episodes | Seconds |", "|---|---:|---:|---:|",
-        *[f"| {f} | {r.clips} | {r.episodes} | {r.seconds:.0f} |" for f, r in by_factory.iterrows()], "",
+        *[f"| {r.Index} | {int(r.clips)} | {int(r.episodes)} | {r.seconds:.0f} |" for r in by_factory.itertuples()], "",
         "Most common tasks: " + ", ".join(f"{t} ({n})" for t, n in tasks) + ".", "",
         "## How it was made",
         "1. Hands: MediaPipe on every 2nd frame, then side voting, IDs, gap fill and smoothing; "

@@ -1,6 +1,7 @@
 """G4 · owner: Gunagye. Export: build a robot dataset from usable footage. ui-design.md §4.
 Calls the same functions as `python -m egovision export` (products/export.py)."""
 import json
+import re
 from html import escape
 from pathlib import Path
 
@@ -69,7 +70,8 @@ if done:
             f'<code>{escape(str(root))}</code></p></div>')
     sheet, data = st.tabs(["Data sheet", "First episode (parquet)"])
     with sheet:
-        st.markdown((root / "datasheet.md").read_text(encoding="utf-8"))
+        md = (root / "datasheet.md").read_text(encoding="utf-8")
+        st.markdown(re.sub(r"^(#{1,2}) ", lambda m: "#" * (len(m.group(1)) + 2) + " ", md, flags=re.M))
     with data:
         first = pd.read_parquet(root / "data" / "chunk-000" / "episode_000000.parquet")
         st.caption(f"{len(first)} rows × {len(first.columns)} columns · `pd.read_parquet(...)`")
@@ -77,6 +79,7 @@ if done:
 
 products = query.sql("SELECT name, path, filter_json, n_items, created_at FROM products WHERE kind = 'dataset' "
                      "ORDER BY created_at DESC")
+products = products[products["path"].map(lambda x: Path(x).exists())]
 if not products.empty:
     st.html('<h3 style="font-size:16px;font-weight:600;margin:32px 0 8px">Earlier datasets</h3>')
     products["light"] = products["filter_json"].map(lambda f: json.loads(f).get("light", "—"))

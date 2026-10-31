@@ -28,8 +28,8 @@
 ⛔ **CHECKPOINT G-2** · Show: `streamlit run app/Home.py` on fixtures: library → review → click a red second → video jumps.
 
 ## G4 · Robot export (hero) (3 h) · P0
-- [ ] `products/export.py: export(name, light)`: episodes from green (or green+yellow) runs ≥ 3 s, split at step boundaries; parquet per episode with the columns of data-schema §4; `meta/info.json`, `episodes.jsonl`, `tasks.jsonl`; episode videos through `redact_frame`; `datasheet.md` (numbers from `metrics.json`, hardware, licences, limits, `capture_feedback` if present). Missing `quality.csv` = yellow.
-- [ ] `2_Export.py` page per ui-design §4, calling the same function.
+- [x] `products/export.py: export(name, light)`: episodes from green (or green+yellow) runs ≥ 3 s, split at step boundaries; parquet per episode with the columns of data-schema §4; `meta/info.json`, `episodes.jsonl`, `tasks.jsonl`; episode videos through `redact_frame`; `datasheet.md` (numbers from `metrics.json`, hardware, licences, limits, `capture_feedback` if present). Missing `quality.csv` = yellow.
+- [x] `2_Export.py` page per ui-design §4, calling the same function.
 - Done when: test exports the fixture and reloads the parquet with pandas; no red second inside any episode.
 
 ⛔ **CHECKPOINT G-3** · Show: build `demo_v1` from the app; open datasheet; `pd.read_parquet` of one episode.
