@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import time
 from collections import Counter
+from pathlib import Path
 from typing import Iterator
 
 import cv2
@@ -15,6 +16,7 @@ import cv2
 from egovision import config
 from egovision.hands import params
 from egovision.io.frames import frames
+from egovision.io.video import H264Writer
 from egovision.schema import ClipPaths, FrameHands, Hand, read_hands, write_hands
 
 COLORS = {"left": (255, 0, 0), "right": (0, 165, 255)}  # BGR: left blue, right orange
@@ -71,31 +73,40 @@ def run(clip: str) -> None:
     print(f"  {clip}: {n} frames, {n / max(time.time() - t0, 1e-6):.1f} FPS, {shares}")
 
 
-def preview(clip: str) -> None:
-    """Draws the raw baseline on the clip; skipped frames repeat the last result."""
+def draw_hands(img, hands: list[Hand]) -> None:
     from mediapipe.tasks.python.vision import HandLandmarksConnections as C
 
+    for hand in hands:
+        color = COLORS[hand.side]
+        pts = [(int(x), int(y)) for x, y in hand.kp2d]
+        for c in C.HAND_CONNECTIONS:
+            cv2.line(img, pts[c.start], pts[c.end], color, 2)
+        for pt in pts:
+            cv2.circle(img, pt, 3, color, -1)
+        tag = f"#{hand.id} " if hand.id >= 0 else ""
+        cv2.putText(img, f"{tag}{hand.side} {hand.score:.2f}", (int(hand.bbox[0]), max(int(hand.bbox[1]) - 6, 12)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+
+def write_preview(clip: str, hands_file: Path, out_path: Path) -> None:
+    """Draws a hand file on the clip; frames without a row repeat the last result."""
     p = ClipPaths(clip)
-    rows = {fr.frame: fr for fr in read_hands(p.hands_baseline)}
+    rows = {fr.frame: fr for fr in read_hands(hands_file)}
     cap = cv2.VideoCapture(str(p.video))
     fps, w, h = cap.get(cv2.CAP_PROP_FPS) or 30.0, int(cap.get(3)), int(cap.get(4))
     cap.release()
-    out = cv2.VideoWriter(str(p.dir / "preview_baseline.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
     last = None
-    for i, _, img in frames(p.video):
-        last = rows.get(i, last)
-        for hand in (last.hands if last else []):
-            color = COLORS[hand.side]
-            pts = [(int(x), int(y)) for x, y in hand.kp2d]
-            for c in C.HAND_CONNECTIONS:
-                cv2.line(img, pts[c.start], pts[c.end], color, 2)
-            for pt in pts:
-                cv2.circle(img, pt, 3, color, -1)
-            cv2.putText(img, f"{hand.side} {hand.score:.2f}", (int(hand.bbox[0]), max(int(hand.bbox[1]) - 6, 12)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        out.write(img)
-    out.release()
-    print(f"  wrote {p.dir / 'preview_baseline.mp4'}")
+    with H264Writer(out_path, fps, (w, h)) as out:
+        for i, _, img in frames(p.video):
+            last = rows.get(i, last)
+            draw_hands(img, last.hands if last else [])
+            out.write(img)
+    print(f"  wrote {out_path}")
+
+
+def preview(clip: str) -> None:
+    p = ClipPaths(clip)
+    write_preview(clip, p.hands_baseline, p.dir / "preview_baseline.mp4")
 
 
 if __name__ == "__main__":

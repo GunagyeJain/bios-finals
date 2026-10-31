@@ -16,18 +16,18 @@
 ⛔ **CHECKPOINT A-1** · Show: preview of one demo clip at a hard moment (blur/gloves/re-entry), FPS, mirror decision, share of frames with 0/1/2 hands.
 
 ## A2 · Track IDs, side voting, re-entry (2.5 h) · P0
-- [ ] `hands/refine.py: run(clip)`: read baseline; apply `MIRROR`; Hungarian match on side + IoU + wrist distance (`scipy.optimize.linear_sum_assignment`); keep a lost track 2 s for re-entry.
-- [ ] Side voting: track side = majority over its frames + prior (left hand mostly in left half). No single-frame swaps.
-- [ ] When a hand is missing inside a live track, call `recovery.api.recover_missing(img, frame, t, side, last)`; when present, store `recovery.api.agreement(img, hand)` in `hand.agreement`. Both are no-ops until Bhavyam fills them; don't wait.
+- [x] `hands/refine.py: run(clip)`: read baseline; apply `MIRROR`; Hungarian match on side + IoU + wrist distance (`scipy.optimize.linear_sum_assignment`); keep a lost track 2 s for re-entry.
+- [x] Side voting: track side = majority over its frames + prior (left hand mostly in left half). No single-frame swaps.
+- [x] When a hand is missing inside a live track, call `recovery.api.recover_missing(img, frame, t, side, last)`; when present, store `recovery.api.agreement(img, hand)` in `hand.agreement`. Both are no-ops until Bhavyam fills them; don't wait.
 - Fallback: none needed (input is your own A1).
 
 ## A3 · Sanity, gap fill, smoothing → `hands.jsonl` (2 h) · P0
-- [ ] Sanity: bone-length ratios, max wrist speed → flag `sanity`, lower score.
-- [ ] Gap fill: linear ≤ 5 frames (`source="interp"`), then fill skipped frames so `hands.jsonl` has **every** frame.
-- [ ] One-Euro per coordinate (p.11), params in `params.py`.
-- [ ] Flags: `low_conf` (score < 0.5), `edge` (box touches frame edge), `sanity`.
-- [ ] `--preview` also for refine → `preview_refined.mp4`.
-- [ ] Numbers before/after: swaps per minute, jitter (mean frame-to-frame wrist motion when the hand is still).
+- [x] Sanity: bone-length ratios, max wrist speed → flag `sanity`, lower score.
+- [x] Gap fill: linear ≤ 5 frames (`source="interp"`), then fill skipped frames so `hands.jsonl` has **every** frame.
+- [x] One-Euro per coordinate (p.11), params in `params.py`.
+- [x] Flags: `low_conf` (score < 0.5), `edge` (box touches frame edge), `sanity`.
+- [x] `--preview` also for refine → `preview_refined.mp4`.
+- [x] Numbers before/after: swaps per minute, jitter (mean frame-to-frame wrist motion when the hand is still).
 - Done when: tests for side voting, gap fill and One-Euro on synthetic tracks; `check` OK on 2 real clips.
 
 ⛔ **CHECKPOINT A-2** · Show: baseline vs refined preview side by side on the same 10 s; swaps/min and jitter before/after.
