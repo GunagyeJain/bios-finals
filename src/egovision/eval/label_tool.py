@@ -31,6 +31,9 @@ SHARED_N = 30
 SHARED_SEED = 1702
 MAX_HANDS = 2
 WINDOW = "label_tool"
+FIT = (1200, 660)                                 # max frame size on screen (MacBook Air), header bar above it
+BAR = 94                                          # header bar height in px
+POINT_NAMES = ("wrist", "thumb tip", "index tip", "middle tip", "ring tip", "little tip")
 
 
 # ---------- frame picking ----------
@@ -243,10 +246,11 @@ COLOURS = {"left": (60, 160, 255), "right": (255, 140, 40), None: (200, 200, 200
 
 def draw(img, d: FrameDraft, scale: float, header: str, message: str):
     import cv2
-    out = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+    frame = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
+    out = cv2.copyMakeBorder(frame, BAR, 0, 0, 0, cv2.BORDER_CONSTANT, value=(25, 25, 25))
     for h in d.hands:
         col = COLOURS[h.side]
-        pts = [(int(x * scale), int(y * scale)) for x, y in h.points]
+        pts = [(int(x * scale), int(y * scale) + BAR) for x, y in h.points]
         for p in pts[1:]:
             cv2.line(out, pts[0], p, col, 1, cv2.LINE_AA)
         for k, p in enumerate(pts):
@@ -254,11 +258,10 @@ def draw(img, d: FrameDraft, scale: float, header: str, message: str):
         if pts:
             cv2.putText(out, (h.side or "?")[0].upper(), (pts[0][0] + 8, pts[0][1] + 16),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2, cv2.LINE_AA)
-    need = "wrist" if not d.hands or len(d.hands[-1].points) in (0, N_POINTS) else f"tip {len(d.hands[-1].points)}"
+    k = len(d.hands[-1].points) % N_POINTS if d.hands else 0
+    need = POINT_NAMES[k] + (" of a new hand" if k == 0 and d.hands else "")
     lines = [header, f"next click: {need} | tags: {', '.join(d.tags) or '-'}",
              "n save  s skip  u undo  l/r side  t+1..5 tag  q quit", message]
-    bar = 22 * len(lines) + 6
-    cv2.rectangle(out, (0, 0), (out.shape[1], bar), (25, 25, 25), -1)
     for i, text in enumerate(lines):
         cv2.putText(out, text, (8, 20 + 22 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                     (80, 200, 255) if i == 3 else (235, 235, 235), 1, cv2.LINE_AA)
@@ -271,8 +274,8 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
     state = {"msg": "", "tag_mode": False}
 
     def on_mouse(event, x, y, _flags, _param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            state["msg"] = "" if d.click(x / scale, y / scale) else f"max {MAX_HANDS} hands"
+        if event == cv2.EVENT_LBUTTONDOWN and y >= BAR:
+            state["msg"] = "" if d.click(x / scale, (y - BAR) / scale) else f"max {MAX_HANDS} hands"
 
     cv2.setMouseCallback(WINDOW, on_mouse)
     while True:
@@ -319,7 +322,7 @@ def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> 
     skipped = set(map(int, skip_file.read_text().split())) if skip_file.exists() else set()
     done = {f["frame"] for f in data["frames"]}
     goal = len(todo) if shared else n
-    scale = scale or max(1.0, min(2.0, 1280 / width))
+    scale = scale or min(2.0, FIT[0] / width, FIT[1] / height)
     cv2.namedWindow(WINDOW, cv2.WINDOW_AUTOSIZE)
     try:
         for frame in todo:
@@ -355,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--labeller", required=True, help="your first name, lowercase")
     ap.add_argument("--n", type=int, default=40, help="frames to label (ignored with --shared)")
     ap.add_argument("--shared", action="store_true", help=f"the common {SHARED_N}-frame set (same frames for everyone)")
-    ap.add_argument("--scale", type=float, default=None, help="window zoom (default: fit about 1280 px wide)")
+    ap.add_argument("--scale", type=float, default=None, help="window zoom (default: fit the frame in 1200x660)")
     a = ap.parse_args(argv)
     run(a.clip, a.labeller, a.n, a.shared, a.scale)
     return 0
