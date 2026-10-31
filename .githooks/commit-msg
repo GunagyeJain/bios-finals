@@ -1,0 +1,8 @@
+#!/bin/sh
+# Team policy: one author per commit. Drops co-author trailers and tool footers.
+msg="$1"
+tmp="$msg.tmp"
+grep -viE '^co-authored-by:|generated with \[' "$msg" > "$tmp" || true
+# Remove trailing blank lines left behind
+awk 'NF { for (i = 0; i < blank; i++) print ""; blank = 0; print; next } { blank++ }' "$tmp" > "$msg"
+rm -f "$tmp"

@@ -1,0 +1,6 @@
+# Emails allowed to author commits in this repo. One per line, lowercase.
+# Add your email here if you commit from a different address.
+gunagye.jain@gmail.com
+misrabhavyam@gmail.com
+nagalabhijay@gmail.com
+shefalisharmaa.work@gmail.com
