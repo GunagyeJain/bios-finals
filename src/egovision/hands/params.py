@@ -37,6 +37,15 @@ ONE_EURO_BETA = 0.01
 ONE_EURO_D_CUTOFF = 1.0
 KP3D_FILTER_SCALE = 1000.0  # world points are in metres; filtered in mm so BETA means the same as for pixels
 
+# WiLoR
+WILOR_DIR = config.ROOT / "models" / "wilor" / "pretrained_models"   # MANO_RIGHT.pkl, wilor_final.ckpt, mano_mean_params.npz
+WILOR_BATCH = 16
+WILOR_RESCALE = 2.5         # crop side = this × longer box side (WiLoR's own value)
+WILOR_PATCH = 256
+WILOR_FOCAL = 5000.0
+WILOR_SCORE = 0.7           # WiLoR gives no confidence; hands it re-estimated count as this at least
+WILOR_MATCH_SIZES = 1.5     # a WiLoR hand replaces a same-side hand with its wrist this close, in hand sizes
+
 # Flags
 LOW_CONF = 0.5
 DISAGREE = 0.6

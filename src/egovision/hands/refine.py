@@ -67,11 +67,33 @@ def apply_recovery(rows: list[FrameHands], images: Iterable[tuple[int, float, np
     return [out.get(fr.frame, fr) for fr in rows]
 
 
+def merge_wilor(rows: list[FrameHands], wilor: Iterable[FrameHands]) -> list[FrameHands]:
+    """WiLoR points replace the matching hand's, keeping its id and voted side. Where that hand was
+    missing, the WiLoR hand joins its track if the track still has that id and side."""
+    sides = {h.id: h.side for fr in rows for h in fr.hands}
+    extra = {fr.frame: fr.hands for fr in wilor}
+    out = []
+    for fr in rows:
+        hands = list(fr.hands)
+        for w in extra.get(fr.frame, ()):
+            same = [i for i, h in enumerate(hands) if h.side == w.side and
+                    tracking.wrist_distance(h, w) <= params.WILOR_MATCH_SIZES * tracking.hand_size(h)]
+            if same:
+                i = min(same, key=lambda k: tracking.wrist_distance(hands[k], w))
+                h = hands[i]
+                hands[i] = replace(h, kp2d=w.kp2d, kp3d=w.kp3d, bbox=w.bbox, source="wilor",
+                                   score=max(h.score, params.WILOR_SCORE))
+            elif sides.get(w.id) == w.side and all(h.id != w.id for h in hands):
+                hands.append(w)
+        out.append(FrameHands(fr.frame, fr.t, hands))
+    return out
+
+
 def refine(rows: list[FrameHands], n_frames: int, fps: float, width: int, height: int,
-           images: Iterable[tuple[int, float, np.ndarray]] = ()) -> list[FrameHands]:
+           images: Iterable[tuple[int, float, np.ndarray]] = (), wilor: Iterable[FrameHands] = ()) -> list[FrameHands]:
     tracked = tracking.assign_ids(apply_mirror(rows, params.MIRROR), width)
     tracked = tracking.vote_sides(tracking.split_on_side_change(tracked), width)
-    tracked = apply_recovery(tracked, images)
+    tracked = merge_wilor(apply_recovery(tracked, images), wilor)
     tracks: dict[int, list[cleanup.Obs]] = defaultdict(list)
     for fr in tracked:
         for h in fr.hands:
@@ -107,7 +129,8 @@ def run(clip: str) -> None:
     step = meta.get("step", config.FRAME_STEP)
     before = list(read_hands(p.hands_baseline))
     images = frames(p.video, step=step) if p.video.exists() else ()
-    after = refine(before, n, fps, w, h, images)
+    wilor = list(read_hands(p.wilor)) if p.wilor.exists() else ()
+    after = refine(before, n, fps, w, h, images, wilor)
     # Written to a temp name first: the CLI treats an existing output as a finished stage.
     tmp = p.hands.with_suffix(".tmp")
     write_hands(tmp, after)
