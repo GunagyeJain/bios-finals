@@ -95,7 +95,7 @@ def refine(rows: list[FrameHands], n_frames: int, fps: float, width: int, height
            images: Iterable[tuple[int, float, np.ndarray]] = (), wilor: Iterable[FrameHands] = ()) -> list[FrameHands]:
     tracked = tracking.assign_ids(apply_mirror(rows, params.MIRROR), width)
     tracked = tracking.vote_sides(tracking.split_on_side_change(tracked), width)
-    tracked = merge_wilor(apply_recovery(tracked, images), wilor)
+    tracked = tracking.fix_same_side(merge_wilor(apply_recovery(tracked, images), wilor))
     tracks: dict[int, list[cleanup.Obs]] = defaultdict(list)
     for fr in tracked:
         for h in fr.hands:
@@ -144,7 +144,7 @@ def run(clip: str) -> None:
     step = meta.get("step", config.FRAME_STEP)
     before = list(read_hands(p.hands_baseline))
     t0 = time.time()
-    images = frames(p.video, step=step) if p.video.exists() else ()
+    images = frames(p.video, step=step) if params.USE_RECOVERY and p.video.exists() else ()
     wilor = list(read_hands(p.wilor)) if p.wilor.exists() else ()
     after = refine(sensitive_rows(clip), n, fps, w, h, images, wilor)
     # Written to a temp name first: the CLI treats an existing output as a finished stage.

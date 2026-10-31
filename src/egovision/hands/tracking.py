@@ -164,3 +164,16 @@ def vote_sides(frames: list[FrameHands], width: int) -> list[FrameHands]:
                 side = flip_side(side)
         sides[tid] = side
     return [FrameHands(fr.frame, fr.t, [replace(h, side=sides[h.id]) for h in fr.hands]) for fr in frames]
+
+
+def fix_same_side(frames: list[FrameHands]) -> list[FrameHands]:
+    """Two hands left with one side after voting can't both be right: when they are clearly apart, the
+    one further left in the image is the left hand. Pairs with different sides are left alone."""
+    out = []
+    for fr in frames:
+        if len(fr.hands) == 2 and fr.hands[0].side == fr.hands[1].side:
+            a, b = sorted(fr.hands, key=lambda h: h.kp2d[0][0])
+            if b.kp2d[0][0] - a.kp2d[0][0] > params.SAME_SIDE_APART * max(hand_size(a), hand_size(b)):
+                fr = FrameHands(fr.frame, fr.t, [replace(a, side="left"), replace(b, side="right")])
+        out.append(fr)
+    return out

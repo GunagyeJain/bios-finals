@@ -90,6 +90,21 @@ def test_conflict_never_flips_against_the_image_order():
     assert next(h for h in out[0].hands if h.kp2d[0][0] < 500).side == "left"
 
 
+def test_same_side_pair_far_apart_is_split_by_image_order():
+    out = tracking.fix_same_side(rows([hand("right", 1500), hand("right", 400)]))[0].hands
+    assert {h.side: h.kp2d[0][0] for h in out} == {"left": 400, "right": 1500}
+
+
+def test_same_side_pair_too_close_stays_as_it_is():
+    out = tracking.fix_same_side(rows([hand("left", 400), hand("left", 430)]))[0].hands
+    assert [h.side for h in out] == ["left", "left"]
+
+
+def test_pair_with_different_sides_is_not_touched_even_if_crossed():
+    out = tracking.fix_same_side(rows([hand("right", 400), hand("left", 1500)]))[0].hands
+    assert {h.side: h.kp2d[0][0] for h in out} == {"right": 400, "left": 1500}
+
+
 def test_mirror_swaps_every_label():
     assert apply_mirror(rows([hand("left", 400)]), True)[0].hands[0].side == "right"
     assert apply_mirror(rows([hand("left", 400)]), False)[0].hands[0].side == "left"

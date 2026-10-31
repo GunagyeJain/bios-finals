@@ -26,6 +26,8 @@ SIDE_MIN_RUN = 15           # a track only splits for a side change lasting this
 PRIOR_WEIGHT = 0.25         # per-frame vote for the image half the wrist is in (labels vote with their score)
 PAIR_WEIGHT = 0.5           # per-frame vote when two hands are visible: the one further left votes left
 CONFLICT_MIN_FRAMES = 3     # two tracks sharing this many frames should not be the same side
+SAME_SIDE_APART = 0.5       # a same-side pair further apart than this many hand sizes is split by image order
+USE_RECOVERY = False        # recovery plug-ins are cut (sprint-2.md); True decodes the video for them
 
 # Sanity
 BONE_RATIO_MIN, BONE_RATIO_MAX = 0.6, 1.6   # 3D finger length against the track's median
