@@ -11,6 +11,7 @@ from egovision import config
 from egovision.schema import ClipPaths, read_hands
 
 TABLES = ("segments", "contacts", "steps", "alerts", "frame_summary")
+ROBOT_CAN_COPY = {"2f": {"2f", "generic"}, "5f": {"2f", "5f", "generic"}}   # grips each robot hand can copy
 
 
 def has_index() -> bool:
@@ -47,6 +48,16 @@ def kpis(lib: pd.DataFrame) -> dict[str, float | None]:
         "hands": lib["hands_found_share"].mean() if lib["hands_found_share"].notna().any() else None,
         "fps": fps,
     }
+
+
+def robot_fit(contacts: pd.DataFrame) -> dict:
+    """Share of grabs a 2-finger and a 5-finger robot can copy; 'unsure' grabs count as not copyable."""
+    n = len(contacts)
+    if not n:
+        return {"2f": None, "5f": None, "unsure": None, "grabs": 0}
+    grips = contacts["grip"].fillna("unsure")
+    return {**{robot: float(grips.isin(ok).mean()) for robot, ok in ROBOT_CAN_COPY.items()},
+            "unsure": float((grips == "unsure").mean()), "grabs": n}
 
 
 def clip_data(clip: str) -> dict[str, pd.DataFrame]:

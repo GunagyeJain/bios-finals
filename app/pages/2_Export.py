@@ -21,15 +21,17 @@ lib = query.library()
 title("Export", "A robot dataset from usable footage only: episodes of at least 3 s, cut at step boundaries, "
                 "faces blurred, red seconds never included.")
 
-c1, c2, c3, c4, c5 = st.columns([2, 2, 3, 2, 2])
+c1, c2, c3, c4, c5, c6 = st.columns([2, 2.2, 2.4, 1.6, 2, 2])
 name = c1.text_input("Dataset name", value="demo_v1")
 light = c2.radio("Light", ["green", "yellow"], format_func={"green": "Green only", "yellow": "Green + yellow"}.get,
                  horizontal=True)
 factories = c3.multiselect("Factories", sorted(lib["factory"].unique()), placeholder="All factories")
 grips = c4.multiselect("Grip", ["2f", "5f", "generic", "unsure"], placeholder="Any grip")
-task = c5.text_input("Task contains", placeholder="e.g. fasten")
+robot = c5.selectbox("Robot hand", [None, "2f", "5f"], format_func={None: "Any", "2f": "2-finger can copy",
+                                                                   "5f": "5-finger can copy"}.get)
+task = c6.text_input("Task contains", placeholder="e.g. fasten")
 
-eps = preview(light, factories or None, grips or None, task)
+eps = preview(light, factories or None, grips or None, task, robot)
 secs = float((eps["t_end"] - eps["t_start"]).sum()) if not eps.empty else 0.0
 fps = 15.0
 kpi_strip([
@@ -56,7 +58,8 @@ build = right.button("Build dataset", type="primary", disabled=eps.empty or not 
 if build:
     with st.spinner(f"Writing exports/{name} (blurring faces in every episode video)…"):
         try:
-            st.session_state.last_export = export(name.strip(), light, factories or None, grips or None, task)
+            st.session_state.last_export = export(name.strip(), light, factories or None, grips or None, task,
+                                                  robot=robot)
         except ValueError as e:
             st.error(str(e))
 

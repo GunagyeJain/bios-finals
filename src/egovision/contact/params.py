@@ -26,3 +26,9 @@ OFF_FRAMES = 6            # consecutive frames without it before it ends
 # Moving machine: mean abs grey difference inside the box vs. outside all boxes (ego-motion)
 MOVING_MIN = 6.0          # 0-255 grey levels
 MOVING_RATIO = 2.0
+
+# Grip per contact interval (F11), from the median over its frames; lengths relative to palm (kp0 → kp9)
+PINCH_MAX = 0.35          # thumb tip to index tip: a pinch closes the gap
+OTHERS_OPEN_MIN = 0.8     # middle/ring/little tips to palm centre: not wrapped round the object
+WRAP_MAX = 0.8            # rule.closure() of a power grip (fist ~0.3, open hand ~1.0+)
+MIN_PRESENT = 0.5         # share of the interval's frames that need keypoints, else "unsure"

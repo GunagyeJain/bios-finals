@@ -36,9 +36,9 @@ def _tables() -> dict[str, pd.DataFrame]:
 
 
 def preview(light: str = "green", factories: list[str] | None = None, grips: list[str] | None = None,
-            task_contains: str = "") -> pd.DataFrame:
+            task_contains: str = "", robot: str | None = None) -> pd.DataFrame:
     t = _tables()
-    return plan(t["clips"], t["segments"], t["steps"], t["contacts"], light, factories, grips, task_contains)
+    return plan(t["clips"], t["segments"], t["steps"], t["contacts"], light, factories, grips, task_contains, robot)
 
 
 def _hand_cols(hands: list, side: str) -> dict:
@@ -131,13 +131,13 @@ def _info(name: str, eps: list[dict], fps: float, light: str, filters: dict) -> 
 
 
 def export(name: str, light: str = "green", factories: list[str] | None = None, grips: list[str] | None = None,
-           task_contains: str = "", redact: Callable | None = None) -> dict:
+           task_contains: str = "", redact: Callable | None = None, robot: str | None = None) -> dict:
     """Write exports/<name>/ and register it in the index. Returns the numbers the Export page shows."""
     if redact is None:
         from egovision.quality.redact import redact_frame as redact
     tables = _tables()
     eps = plan(tables["clips"], tables["segments"], tables["steps"], tables["contacts"], light, factories,
-               grips, task_contains)
+               grips, task_contains, robot)
     if eps.empty:
         raise ValueError("No episode matches these filters (needs a usable stretch of at least 3 s).")
     root = config.EXPORTS / name
@@ -150,7 +150,8 @@ def export(name: str, light: str = "green", factories: list[str] | None = None, 
         episodes += _write_clip(clip, grp, tables, root, redact)
     fps = float(read_meta(ClipPaths(episodes[0]["clip"]).meta)["fps"]) / int(
         read_meta(ClipPaths(episodes[0]["clip"]).meta).get("step", config.FRAME_STEP))
-    filters = {"light": light, "factories": factories or [], "grips": grips or [], "task_contains": task_contains}
+    filters = {"light": light, "factories": factories or [], "grips": grips or [], "task_contains": task_contains,
+               "robot": robot or ""}
     (root / "meta").mkdir(parents=True, exist_ok=True)
     info = _info(name, episodes, fps, light, filters)
     (root / "meta" / "info.json").write_text(json.dumps(json.loads(_json(info)), indent=2), encoding="utf-8")

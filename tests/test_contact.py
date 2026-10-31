@@ -86,3 +86,28 @@ def test_moving_flags_box_that_changes_more_than_background():
     cur[60:90, 60:90] = 80                       # hand moves, must be ignored
     flags = rule.moving(prev, cur, [[10, 10, 30, 30], [60, 60, 90, 90]], ignore=[[60, 60, 90, 90]])
     assert flags == [True, False]
+
+
+PINCH_TIPS = [[-12, 46], [-10, 44], [0, -45], [20, -40], [45, -15]]     # thumb meets index, others straight
+
+
+def test_grip_pinch_is_2f():
+    assert rule.grip([_hand(PINCH_TIPS)] * 6, "portable") == "2f"
+
+
+def test_grip_fist_is_5f():
+    assert rule.grip([_hand(FIST_TIPS)] * 6, "portable") == "5f"
+
+
+def test_grip_fixed_object_is_generic():
+    assert rule.grip([_hand(FIST_TIPS)] * 6, "fixed") == "generic"
+
+
+def test_grip_open_hand_or_missing_keypoints_is_unsure():
+    assert rule.grip([_hand(OPEN_TIPS)] * 6, "portable") == "unsure"
+    assert rule.grip([None, None, None, _hand(FIST_TIPS)], "portable") == "unsure"
+
+
+def test_grip_uses_the_median_over_frames():
+    frames = [_hand(PINCH_TIPS)] * 4 + [_hand(FIST_TIPS)] * 2
+    assert rule.grip(frames, "portable") == "2f"

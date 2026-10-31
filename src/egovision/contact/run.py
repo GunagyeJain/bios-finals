@@ -62,6 +62,7 @@ def run(clip: str) -> None:
     objs, next_id, prev_gray, last_run = [], 0, None, {}
     obj_rows, seen = [], {}
     samples = {s: [] for s in SIDES}
+    keypoints = {s: [] for s in SIDES}                    # (t, kp2d or None) per frame, for the grip rule
     for k, (i, t, img) in enumerate(frames(p.video, step=step)):
         frame_hands = hands.get(i, [])
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -79,6 +80,7 @@ def run(clip: str) -> None:
         prev_gray = gray
         by_side = _best_by_side(frame_hands)
         for side in SIDES:
+            keypoints[side].append((t, by_side[side].kp2d if side in by_side else None))
             o, n = rule.pick_object(by_side[side].kp2d, objs) if side in by_side else (None, 0)
             if o is not None:
                 seen.setdefault((side, o["name"], t), o)
@@ -88,6 +90,7 @@ def run(clip: str) -> None:
     write_jsonl(p.objects, obj_rows)
     rows = [{"clip": clip, "t_start": round(a, 3), "t_end": round(b, 3), "hand": side,
              "state": seen[side, name, a]["kind"], "object_name": name,
-             "object_id": seen[side, name, a]["id"], "confidence": round(conf, 3), "grip": "unsure"}
+             "object_id": seen[side, name, a]["id"], "confidence": round(conf, 3),
+             "grip": rule.grip([kp for tk, kp in keypoints[side] if a <= tk <= b], seen[side, name, a]["kind"])}
             for side in SIDES for a, b, name, conf in rule.hysteresis(samples[side])]
     write_csv(p.contacts, CONTACT_COLS, sorted(rows, key=lambda r: (r["t_start"], r["hand"])))

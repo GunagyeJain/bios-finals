@@ -33,13 +33,14 @@ with left:
                      + finding)
 right.page_link("pages/2_Export.py", label="Build a dataset →")
 
+fit = query.robot_fit(query.sql("SELECT grip FROM contacts"))
 kpi_strip([
-    ("Clips", num(len(lib)), f"{lib['factory'].nunique()} factories"),
-    ("Footage", num(f"{k['hours']:.1f}", "h"), f"{lib['duration_s'].median() / 60:.0f} min per clip"),
+    ("Clips", num(len(lib)), f"{k['hours']:.1f} h · {lib['factory'].nunique()} factories"),
     ("Usable", num(pct(k["green"])), "of graded seconds"),
     ("Hands found", num(pct(k["hands"])), "processed frames with a hand"),
-    ("Contacts", num(f"{int(lib['n_contacts'].sum()):,}"), "grab-to-release intervals"),
-    ("Speed", num(None if k["fps"] is None or pd.isna(k["fps"]) else f"{k['fps']:.1f}", "FPS"), "pipeline on CPU"),
+    ("Grabs", num(f"{fit['grabs']:,}"), "grab-to-release intervals"),
+    ("2-finger robot", num(pct(fit["2f"])), "of grabs it can copy (pinch, press)"),
+    ("5-finger robot", num(pct(fit["5f"])), f"of grabs it can copy · {pct(fit['unsure'])} unsure"),
 ])
 
 f1, f2, f3, _ = st.columns([2, 2, 2, 3])

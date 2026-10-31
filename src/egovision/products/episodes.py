@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from egovision.index.query import ROBOT_CAN_COPY
+
 MIN_EPISODE_S = 3.0
 ALLOWED = {"green": {"green"}, "yellow": {"green", "yellow"}}
 
@@ -57,8 +59,9 @@ def task_of(a: float, b: float, steps: pd.DataFrame, contacts: pd.DataFrame) -> 
 
 def plan(clips: pd.DataFrame, segments: pd.DataFrame, steps: pd.DataFrame, contacts: pd.DataFrame, light: str,
          factories: list[str] | None = None, grips: list[str] | None = None,
-         task_contains: str = "") -> pd.DataFrame:
-    """One row per episode: clip, t_start, t_end, task, light_share, grip_types, steps."""
+         task_contains: str = "", robot: str | None = None) -> pd.DataFrame:
+    """One row per episode: clip, t_start, t_end, task, light_share, grip_types, steps.
+    robot='2f' or '5f' keeps only episodes whose every grab that robot hand can copy."""
     rows = []
     for c in clips.itertuples():
         if factories and c.factory not in factories:
@@ -70,6 +73,8 @@ def plan(clips: pd.DataFrame, segments: pd.DataFrame, steps: pd.DataFrame, conta
                 inside = co[(co["t_end"] > a) & (co["t_start"] < b)]
                 grip_types = sorted(set(inside["grip"]))
                 if grips and not set(grips) & set(grip_types):
+                    continue
+                if robot and not (grip_types and set(grip_types) <= ROBOT_CAN_COPY[robot]):
                     continue
                 task = task_of(a, b, st, co)
                 if task_contains and task_contains.lower() not in task.lower():

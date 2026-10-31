@@ -126,3 +126,32 @@ def moving(prev_gray: np.ndarray, gray: np.ndarray, boxes: list[list[float]],
         d_in = float(diff[inside].mean()) if inside.any() else 0.0
         flags.append(d_in >= P.MOVING_MIN and d_in >= P.MOVING_RATIO * d_out)
     return flags
+
+
+def _grip_measures(kp2d: list[list[float]]) -> tuple[float, float, float] | None:
+    """(thumb-index gap, other fingers' distance to palm, closure), each relative to palm length."""
+    kp = np.asarray(kp2d, float)
+    palm = np.linalg.norm(kp[9] - kp[0])
+    if palm < 1e-6:
+        return None
+    centre = kp[list(PALM)].mean(axis=0)
+    pinch = np.linalg.norm(kp[4] - kp[8]) / palm
+    others = np.linalg.norm(kp[[12, 16, 20]] - centre, axis=1).mean() / palm
+    return float(pinch), float(others), closure(kp2d)
+
+
+def grip(frames: list[list[list[float]] | None], state: str) -> str:
+    """Grip of one contact interval: 'generic' on a fixed object, '2f' for a pinch with the other fingers
+    free, '5f' for a wrap, 'unsure' when keypoints are missing or the hand fits neither.
+    A 2-finger robot can copy 2f and generic; a 5-finger robot also 5f."""
+    if state == "fixed":
+        return "generic"
+    measures = [m for m in (_grip_measures(kp) for kp in frames if kp is not None) if m is not None]
+    if not frames or len(measures) < P.MIN_PRESENT * len(frames):
+        return "unsure"
+    pinch, others, wrap = np.median(np.asarray(measures), axis=0)
+    if pinch <= P.PINCH_MAX and others >= P.OTHERS_OPEN_MIN:
+        return "2f"
+    if wrap <= P.WRAP_MAX:
+        return "5f"
+    return "unsure"

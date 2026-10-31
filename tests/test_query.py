@@ -67,3 +67,12 @@ def test_light_runs_merges_touching_segments_longest_first():
                         "light": ["red", "red", "green", "red"], "reasons": ["dark", "hands_out", "", "dark"]})
     runs = query.light_runs(seg, "red")
     assert runs[["t_start", "t_end", "reasons"]].values.tolist() == [[5.0, 9.0, "dark"], [0.0, 2.0, "dark · hands_out"]]
+
+
+def test_robot_fit_on_fixture_contacts(indexed):
+    fit = query.robot_fit(query.clip_data("fixture_001")["contacts"])   # grips 5f, generic, 2f
+    assert fit == {"2f": pytest.approx(2 / 3), "5f": 1.0, "unsure": 0.0, "grabs": 3}
+
+
+def test_robot_fit_without_contacts_is_none():
+    assert query.robot_fit(pd.DataFrame(columns=["grip"]))["2f"] is None

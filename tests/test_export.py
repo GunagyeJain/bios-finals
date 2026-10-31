@@ -71,3 +71,16 @@ def test_export_writes_lerobot_layout_without_red_seconds(exported):
 def test_export_registers_the_dataset(exported):
     from egovision.index import query
     assert query.sql("SELECT kind, name, n_items FROM products").values.tolist() == [["dataset", "demo_v1", 2]]
+
+
+def test_robot_filter_keeps_only_copyable_grabs():
+    clips = pd.DataFrame({"clip": ["c"], "factory": ["f"], "duration_s": [12.0]})
+    seg = _seg(["green"] * 12).assign(clip="c")
+    contacts = pd.DataFrame({"clip": ["c", "c"], "t_start": [1.0, 7.0], "t_end": [2.0, 8.0], "grip": ["2f", "5f"],
+                             "object_name": ["screw", "drill"]})
+    steps = pd.DataFrame({"clip": ["c"], "step_idx": [0], "start_s": [6.0], "end_s": [6.0], "verb": ["x"],
+                          "object": ["y"], "hand": ["right"]})
+    assert len(ep.plan(clips, seg, steps, contacts, "green")) == 2
+    only = ep.plan(clips, seg, steps, contacts, "green", robot="2f")
+    assert only[["t_start", "t_end"]].values.tolist() == [[0.0, 6.0]]
+    assert len(ep.plan(clips, seg, steps, contacts, "green", robot="5f")) == 2
