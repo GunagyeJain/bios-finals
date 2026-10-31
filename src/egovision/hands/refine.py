@@ -1,7 +1,8 @@
-"""A2-A4 · owner: Abhijay. Task: docs/06-plan/tasks/abhijay.md
+"""A2-A6 · owner: Abhijay. Task: docs/06-plan/tasks/abhijay.md
 
-Mirror fix, track IDs, side voting, recovery plug-ins, WiLoR merge, sanity, gap fill, One-Euro.
-In: hands_baseline (+ wilor.jsonl if present)  Out: hands.jsonl (every frame).
+Sensitive MediaPipe pass, mirror fix, track IDs, side voting, recovery plug-ins, WiLoR merge, sanity, gap fill, One-Euro.
+In: hands_sensitive.jsonl, made on first run (+ wilor.jsonl if present)  Out: hands.jsonl (every frame).
+hands_baseline stays the untouched "before" that the metrics compare with.
 Calls egovision.recovery.api.recover_missing / agreement (no-op until Bhavyam fills them).
 """
 from __future__ import annotations
@@ -19,7 +20,7 @@ import numpy as np
 from egovision import config
 from egovision.eval.metrics import jitter, pair_order, swaps_per_min
 from egovision.hands import cleanup, params, tracking
-from egovision.hands.baseline import draw_hands, write_preview
+from egovision.hands.baseline import _detect, draw_hands, write_preview
 from egovision.io.frames import build_meta, frames
 from egovision.io.video import H264Writer
 from egovision.recovery import api as recovery
@@ -123,6 +124,19 @@ def stats(before: list[FrameHands], after: list[FrameHands], n_frames: int, fps:
             "sources": dict(sources), "flags": dict(flags)}
 
 
+def sensitive_rows(clip: str) -> list[FrameHands]:
+    """Our detection pass with low thresholds, cached next to the other outputs. MediaPipe's starter
+    thresholds drop many real hands: on the first labelled clip recall went from 0.60 to 0.85."""
+    p = ClipPaths(clip)
+    path = p.dir / "hands_sensitive.jsonl"
+    if not path.exists():
+        conf = params.SENSITIVE_CONF
+        tmp = path.with_suffix(".tmp")
+        write_hands(tmp, _detect(clip, conf, conf, conf))
+        tmp.replace(path)
+    return list(read_hands(path))
+
+
 def run(clip: str) -> None:
     p = ClipPaths(clip).mkdir()
     meta = read_meta(p.meta) if p.meta.exists() else build_meta(clip)
@@ -132,7 +146,7 @@ def run(clip: str) -> None:
     t0 = time.time()
     images = frames(p.video, step=step) if p.video.exists() else ()
     wilor = list(read_hands(p.wilor)) if p.wilor.exists() else ()
-    after = refine(before, n, fps, w, h, images, wilor)
+    after = refine(sensitive_rows(clip), n, fps, w, h, images, wilor)
     # Written to a temp name first: the CLI treats an existing output as a finished stage.
     tmp = p.hands.with_suffix(".tmp")
     write_hands(tmp, after)

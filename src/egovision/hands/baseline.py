@@ -34,7 +34,8 @@ def to_frame_hands(res, frame: int, t: float, w: int, h: int) -> FrameHands:
     return FrameHands(frame, t, hands)
 
 
-def _detect(clip: str) -> Iterator[FrameHands]:
+def _detect(clip: str, detection: float = params.MIN_DETECTION_CONF, tracking: float = params.MIN_TRACKING_CONF,
+            presence: float = params.MIN_PRESENCE_CONF) -> Iterator[FrameHands]:
     import mediapipe as mp
     from mediapipe.tasks import python as mpp
     from mediapipe.tasks.python import vision
@@ -43,8 +44,9 @@ def _detect(clip: str) -> Iterator[FrameHands]:
         base_options=mpp.BaseOptions(model_asset_path=str(params.MODEL_PATH)),
         running_mode=vision.RunningMode.VIDEO,
         num_hands=params.NUM_HANDS,
-        min_hand_detection_confidence=params.MIN_DETECTION_CONF,
-        min_tracking_confidence=params.MIN_TRACKING_CONF)
+        min_hand_detection_confidence=detection,
+        min_hand_presence_confidence=presence,
+        min_tracking_confidence=tracking)
     with vision.HandLandmarker.create_from_options(opts) as lm:
         for i, t, img in frames(ClipPaths(clip).video, step=config.FRAME_STEP):
             h, w = img.shape[:2]

@@ -6,6 +6,8 @@ MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/han
 NUM_HANDS = 2
 MIN_DETECTION_CONF = 0.4
 MIN_TRACKING_CONF = 0.4
+MIN_PRESENCE_CONF = 0.5     # MediaPipe's default
+SENSITIVE_CONF = 0.1        # all three thresholds for our own detection pass; the baseline keeps the starter values
 MIRROR = False  # MediaPipe labels already match the wearer's hands on these clips; see docs/08-log/decisions.md
 
 # Tracking

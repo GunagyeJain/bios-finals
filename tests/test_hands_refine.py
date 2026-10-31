@@ -195,3 +195,19 @@ def test_metrics_see_the_improvement_on_a_noisy_track():
     out = refine(src, 300, FPS, W, H)
     assert swaps_per_min(src, 2, 300 / FPS / 60) > 0 and swaps_per_min(out, 2, 300 / FPS / 60) == 0
     assert jitter(out, 2) < jitter(src, 2) / 2
+
+
+def test_sensitive_pass_uses_low_thresholds_and_is_cached(tmp_path, monkeypatch):
+    from egovision import config
+    from egovision.hands import refine as R
+    monkeypatch.setattr(config, "OUTPUTS", tmp_path)
+    calls = []
+
+    def fake(clip, det, track, pres):
+        calls.append((det, track, pres))
+        return iter(rows([hand("left", 400)]))
+
+    monkeypatch.setattr(R, "_detect", fake)
+    (tmp_path / "c").mkdir()
+    assert len(R.sensitive_rows("c")) == 1 and len(R.sensitive_rows("c")) == 1
+    assert calls == [(params.SENSITIVE_CONF,) * 3]

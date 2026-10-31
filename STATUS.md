@@ -24,7 +24,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Who | What |
 |---|---|
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
-| Abhijay | A5 metrics code pushed, v1 on MTL-SKL00089-012 (partial, 40 labels) → labels on `mytronlabs-000003-002` and shared `MTL-SKL00089-005`, then A6 |
+| Abhijay | A6: sensitive MediaPipe pass pushed (recall 0.60 to 0.88 on one clip), re-running 40 clips; labels on `mytronlabs-000003-002` and shared `MTL-SKL00089-005` in progress |
 | Bhavyam | B3 + B6 done, B5 code pushed (real-clip check needs objects.jsonl); quality on 40 clips running; labels next |
 | Shefali | Labels 40 done · S3 order check done · README + slide outline + demo script drafted · S2 on demo clips waiting for API key + contacts |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
