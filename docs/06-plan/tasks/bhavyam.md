@@ -54,4 +54,6 @@ _Built and measured before the cut, then reverted: commit 9129397, undone by the
 ## Requests (to shared-file owners)
 - To Gunagye (G4 datasheet): say "faces blurred", not "faces/screens blurred" (`data-schema.md` §4, `trd.md` §5.3), unless B-1 brings screens back.
 - To Gunagye (speed budget): my copy of `clips_480p/` is 1920×1080, not 480p (40 clips, 30 fps, 180 s each). Check whether yours is too; trd §6 assumes 480p.
+- To Shefali (slides.md, slide 6): take the text from `../../07-pitch/business-legal.md`; WiLoR and MANO are cut, so drop them from the licence line.
+- To Gunagye (contact): `moving` fires on furniture; a workbench read as moving in up to 41 % of rows on the demo clips. Safety filters it with `NEVER_MOVES`, but check anything else that reads the flag.
 - To Gunagye (requirements, TC6): YOLOE needs the `clip` package, which ultralytics installs itself at run time, plus a 572 MB `mobileclip_blt.ts` download (about 8 min here). Add `clip` to `requirements.txt` and have the fresh-clone test allow for the download.
