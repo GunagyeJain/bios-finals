@@ -1,7 +1,6 @@
 # 07-pitch
 
-Created near the end. Expected files:
-- `outline.md`: slide-by-slide outline, each slide tagged with the judging criterion it serves
-- `demo-script.md`: the 3-minute demo, step by step, with a fallback video
-- `qa.md`: likely judge questions and answers
-- final deck exports (`.pdf`, `.pptx`)
+- `outline.md`: 6-slide outline, each slide tagged with the judging criterion it serves; mock-up rules
+- `demo-script.md`: demo video (2:00 max) shot list from the demo clips; organisers' Drive only
+- `qa.md`: likely judge questions and answers (to add)
+- final deck exports (`.pdf`, `.pptx`) go to the organisers' Drive, not here
