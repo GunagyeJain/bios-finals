@@ -23,7 +23,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 ## In progress
 | Who | What |
 |---|---|
-| Gunagye | G2, G3, G5a (redesigned), G4 export done → waiting at checkpoint G-3 |
+| Gunagye | G2–G4 done, G6 render done; integration 1 on MTL-SKL00089-005 (hands A2 + contacts + render) OK, waiting for B3 quality / S2 steps |
 | Abhijay | A2-A3 done: `hands.jsonl` on all 40 clips (swaps/min 41.2 to 2.7) → waiting on checkpoint A-2, then A4 |
 | Bhavyam | B4 face redaction scanned on all 40 clips; human 20-frame spot check in progress → checkpoint B-1 |
 | Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |

@@ -35,7 +35,7 @@
 ⛔ **CHECKPOINT G-3** · Show: build `demo_v1` from the app; open datasheet; `pd.read_parquet` of one episode.
 
 ## G6 · Render + integration (2 h, then ongoing) · P0
-- [ ] `products/render.py: run(clip)`: H.264 overlay (hands by side + ID, light strip at the bottom, contact label) → `render.mp4`; same for baseline → `render_baseline.mp4`.
+- [x] `products/render.py: run(clip)`: H.264 overlay (hands by side + ID, light strip at the bottom, contact label) → `render.mp4`; same for baseline → `render_baseline.mp4`.
 - [ ] TC3/TC5: pull, copy demo-clip `wilor.jsonl` from team Drive, `run --clip <demo> --force`, `index`, open the app. File bugs to owners in chat with clip + time.
 
 ⛔ **CHECKPOINT G-4** · Show: full demo path (app-flow.md §3) on a real demo clip.
