@@ -33,8 +33,9 @@ def frames(path: Path, step: int = 1, width: int | None = None) -> Iterator[tupl
 
 
 def factory_of(clip: str) -> str:
-    """Factory id from the clip name. Edit once the real naming is known (see docs/04-research/clip-notes.md)."""
-    return clip.rsplit("_", 1)[0]
+    """Factory id from the clip name: `MTL-SGF00106-021` → `MTL-SGF00106`, `mytronlabs-000003-002` →
+    `mytronlabs-000003` (last dash-separated part is the clip number). Fixtures keep `fixture`."""
+    return clip.rsplit("-", 1)[0] if "-" in clip else clip.rsplit("_", 1)[0]
 
 
 def build_meta(clip: str, is_demo: bool = False) -> dict:
