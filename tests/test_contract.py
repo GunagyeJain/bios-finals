@@ -36,5 +36,5 @@ def test_csv_reader_rejects_wrong_header(tmp_path):
 
 def test_cli_skips_stub_stages(fixture_clip, capsys):
     from egovision.__main__ import main
-    assert main(["run", "--clip", "fixture_001", "--stage", "quality", "--force"]) == 0
+    assert main(["run", "--clip", "fixture_001", "--stage", "safety", "--force"]) == 0
     assert "not built yet" in capsys.readouterr().out
