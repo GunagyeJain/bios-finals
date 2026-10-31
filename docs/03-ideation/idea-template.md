@@ -30,7 +30,7 @@
 ## Demo plan (what judges see in 3 minutes)
 1.
 
-## Effort (48 h hack)
+## Effort (24 h hack, ends 1 Nov 11:00)
 | Part | Who | Hours |
 |---|---|---|
 | | | |

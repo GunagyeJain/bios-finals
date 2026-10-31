@@ -1,6 +1,6 @@
 # Caffeinated Nerds · BIOS Hackathon Finals
 
-Team **Caffeinated Nerds** — Thapar Institute BIOS Hackathon, offline finals (30 Oct – 1 Nov 2026, 48 h).
+Team **Caffeinated Nerds** — Thapar Institute BIOS Hackathon, offline finals (24 h, ends **1 Nov 2026, 11:00**).
 
 > Project name, one-line pitch and demo link go here once the idea is final.
 

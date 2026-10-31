@@ -5,7 +5,7 @@
 | Event | BIOS Hackathon |
 | Host | Thapar Institute of Engineering & Technology |
 | Format | Two rounds: online screening → offline finals (on-site) |
-| Finals | 30 Oct – 1 Nov 2026, 48 h, new problem statements given on-site |
+| Finals | 24 h, on-site, **ends 1 Nov 2026 at 11:00**; new problem statement given on-site |
 | Our team | Caffeinated Nerds (4 members, see `../01-team/team.md`) |
 | Screening result | Qualified for finals (results 22 Oct 2026) |
 

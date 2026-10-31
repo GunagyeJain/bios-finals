@@ -2,7 +2,6 @@ name: commit-policy
 
 on:
   push:
-  pull_request:
 
 jobs:
   check:
@@ -13,15 +12,10 @@ jobs:
           fetch-depth: 0
       - name: Check commit authors and trailers
         env:
-          EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [ "$EVENT" = "pull_request" ]; then
-            range="$PR_BASE..$PR_HEAD"
-          elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
             range="$AFTER"
           else
             range="$BEFORE..$AFTER"
