@@ -25,3 +25,7 @@ object: the main object or part handled, 1 to 3 plain words, lowercase.
 hand: which of the worker's hands does it: left, right, both, or none.
 caption: one short sentence, present tense, for example "right hand tightens the screw on the hinge".
 {hint}"""
+
+# Order check (S3)
+REF_MIN_LEN = 3            # reference cycle length, in captioned steps
+REF_MAX_LEN = 8
