@@ -23,6 +23,7 @@
 - Fallback: real hands not ready → run video-only checks and leave hands columns at -1; rerun later.
 - Done when: tests for the light rules on synthetic numbers; `check` OK on 2 real clips.
 - Measured on all 40 clips (7200 s): blur and speed are the only pixel checks that fire. Dark, clipped and frozen never fire: these factories are well lit and no clip stalls, so those checks stay as guards. Sharpness is measured at 480 px, relative to each clip, because factories differ 2x. `hands_out` drives nearly all reds and comes from raw MediaPipe, so it may mean the detector failed, not that hands left the frame; rerun on final hands.
+- Final, on 0.2-threshold hands, all 40 clips: 59 % green, 16 % yellow, 25 % red, 0 contract failures (raw MediaPipe gave 53 / 14 / 34). Red by factory: SGF 31 %, SKL 2 %, 000003 6 %, 000060 62 %. Demo clips: 5, 3 and 2 red seconds of 180. Light validity against labels is still unproven: only 1 labelled frame fell on a red second.
 
 ⛔ **CHECKPOINT B-2** · Show: the light per second for one demo clip next to the video (a quick matplotlib strip is fine, local only); 3 red seconds and their reasons — do they match what you see?
 _B-2 passed: Bhavyam checked the red seconds on the sheet; hands really are out of sight._
@@ -41,6 +42,7 @@ _Built and measured before the cut, then reverted: commit 9129397, undone by the
 - [x] `safety/run.py: run(clip)`: from `objects.jsonl`, fixed objects with `moving: true` (or frame-difference inside the box > threshold); alert when any fingertip is within `0.5 × hand size` for ≥ 0.5 s. `kind="safety"`, detail says hand, distance, object. Per task/time, never per worker.
 - Fallback: G2 not ready → develop on `fixture_001` (has a moving "press machine").
 - Done when: test on synthetic tracks; alerts on one real clip checked by eye.
+- Eye check on 15 alerts across 2 demo clips failed: the boxes did not match the objects, and every alert box scored near 0.12. Alerts now need a box scored 0.4 or more, which leaves 0 alerts on all 3 demo clips (28 rows before). The rule works on the synthetic clip, but it has never fired correctly on real footage, so it stays out of the demo.
 
 ⛔ **CHECKPOINT B-4** · Show: each alert time on one demo clip; true or false alarm?
 
