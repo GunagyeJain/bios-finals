@@ -9,6 +9,7 @@ mediapipe>=0.10.14
 rtmlib>=0.0.13
 onnxruntime>=1.17
 ultralytics>=8.3
+clip @ git+https://github.com/ultralytics/CLIP.git   # YOLOE text prompts (contacts, redaction); needs git
 google-genai>=1.0
 streamlit>=1.38
 plotly>=5.20

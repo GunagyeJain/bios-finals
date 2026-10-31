@@ -33,6 +33,7 @@
 ⛔ **CHECKPOINT A-2** · Show: baseline vs refined preview side by side on the same 10 s; swaps/min and jitter before/after.
 
 ## A4 · WiLoR on flagged frames (4 h) · P0 for accuracy
+- [ ] **Now, before 02:00:** register at mano.is.tue.mpg.de and download `MANO_RIGHT.pkl` (WiLoR needs it; registration can take a while). Licence: WiLoR CC-BY-NC-ND + MANO non-commercial → list both in `models/README.md` for the datasheet. Never commit the `.pkl`.
 - [ ] Set up WiLoR on your RTX 3050 (Colab if it fails); exact versions → `requirements-gpu.txt`.
 - [ ] `python -m egovision.hands.wilor --clip X`: select frames where a hand is `missing` inside a live track or flagged `low_conf`/`disagree`; batch; write `wilor.jsonl` (`source="wilor"`, 21 kp2d + 3D joints).
 - [ ] `refine.py`: when `wilor.jsonl` exists, replace kp2d/kp3d of flagged hands (keep ID and voted side).

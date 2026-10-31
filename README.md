@@ -48,6 +48,6 @@ notebooks/           experiments, EDA, training notebooks
 tests/               automated tests
 data/                datasets (raw/ and processed/ are git-ignored)
 models/              trained weights (git-ignored; links in models/README.md)
-assets/              images, screenshots, diagrams
+assets/diagrams/     our own diagrams only (never footage, frames or screenshots)
 scripts/             setup and helper scripts
 ```

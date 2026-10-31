@@ -34,6 +34,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 |---|---|
 | 2026-10-31 ~11:00 | Finals start (on-site, Thapar) |
 | **2026-11-01 11:00** | **Finals end: submission + judging** |
+| 2026-11-01 ~11:15 | Delete every copy of the footage: `docs/06-plan/data-deletion.md` |
 
 ## Open questions
 - Sponsors / partners and any sponsor-specific prizes?

@@ -1,2 +1,3 @@
 # GPU-only extras for WiLoR (A4, Abhijay). Install on the RTX laptop or Colab, not needed elsewhere.
+# Needs MANO_RIGHT.pkl (register at mano.is.tue.mpg.de; non-commercial licence; git-ignored).
 # Follow the WiLoR repo README for torch + CUDA versions; list exact versions here once it runs.

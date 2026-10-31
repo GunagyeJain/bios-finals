@@ -61,3 +61,10 @@ Resolved during the automatic pull: `git status` → fix the marked files → `g
 - Both edits clearly belong (e.g. two new lines in an `_index.md` or table): keep both, no need to ask.
 - Same lines changed in different directions, or someone else's code: stop and ask the user which version wins.
 - `git rebase --abort` gets back to a clean state if anything looks wrong.
+
+## 8. Event footage (data-use agreement: breaking it = disqualification)
+- Footage is used only for this hackathon. Clips live only in `data/egohack-data/` (git-ignored).
+- **Never in git, never public:** videos, frames, screenshots, PDFs, archives, data files. Pre-commit, pre-push and CI block them (`scripts/check-media.sh`). Never bypass with `-f` or `--no-verify`.
+- Results of real clips stay in `outputs/`; big ones are shared only through the private team Drive.
+- Sending clips to cloud AI APIs (Gemini) is allowed. Anything showing a face, a screen or company documents never goes into a public post.
+- After the event every copy is deleted: `docs/06-plan/data-deletion.md`.
