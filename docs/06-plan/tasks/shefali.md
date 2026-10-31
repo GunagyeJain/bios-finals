@@ -15,10 +15,10 @@
 ⛔ **CHECKPOINT S-1** · Show: label 3 frames live in front of the member; the JSON written.
 
 ## S2 · Gemini step captions → `steps.csv` (2.5 h) · P1
-- [ ] `steps/caption.py: run(clip)`: windows = between consecutive grab/release events in `contacts.csv` (min 1 s, max 20 s). Cut each window (480p) with ffmpeg/OpenCV, pass frames through `quality.redact.redact_frame`, send to Gemini with the fixed verb list `schema.VERBS` + JSON response schema `{verb, object, hand, caption}`.
-- [ ] Cache: `gemini_cache/<sha1(clip,t0,t1,prompt)>.json`; never call twice. One request at a time, exponential backoff on 429. Delete each upload after use (`client.files.delete`).
+- [x] `steps/caption.py: run(clip)`: windows = between consecutive grab/release events in `contacts.csv` (min 1 s, max 20 s). Cut each window (480p) with ffmpeg/OpenCV, pass frames through `quality.redact.redact_frame`, send to Gemini with the fixed verb list `schema.VERBS` + JSON response schema `{verb, object, hand, caption}`.
+- [x] Cache: `gemini_cache/<sha1(clip,t0,t1,prompt)>.json`; never call twice. One request at a time, exponential backoff on 429. Delete each upload after use (`client.files.delete`). _Windows go inline with the request (≤ 3 MB each), so nothing is uploaded or left to delete._
 - [ ] Model name in `steps/params.py` (check AI Studio for the current free-tier model).
-- [ ] Columns exactly `schema.STEP_COLS`; `source="gemini"`, or `"contact"` with `verb="other"` if the call failed.
+- [x] Columns exactly `schema.STEP_COLS`; `source="gemini"`, or `"contact"` with `verb="other"` if the call failed.
 - Fallback: real `contacts.csv` missing → fixed 8 s windows.
 - Done when: test with a mocked client (no network); steps for one real clip.
 
