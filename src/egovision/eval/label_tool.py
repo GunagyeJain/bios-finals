@@ -31,6 +31,7 @@ SHARED_N = 30
 SHARED_SEED = 1702
 MAX_HANDS = 2
 WINDOW = "label_tool"
+DEBUG = False                                     # --debug: print every key and click to the terminal
 FIT = (1200, 660)                                 # max frame size on screen (MacBook Air), header bar above it
 BAR = 94                                          # header bar height in px
 POINT_NAMES = ("wrist", "thumb tip", "index tip", "middle tip", "ring tip", "little tip")
@@ -274,12 +275,15 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
     state = {"msg": "", "tag_mode": False}
 
     def on_mouse(event, x, y, _flags, _param):
+        if event == cv2.EVENT_LBUTTONDOWN and DEBUG:
+            print(f"click at window ({x}, {y})")
         if event == cv2.EVENT_LBUTTONDOWN and y >= BAR:
             state["msg"] = "" if d.click(x / scale, (y - BAR) / scale) else f"max {MAX_HANDS} hands"
 
     cv2.setMouseCallback(WINDOW, on_mouse)
     while True:
         if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:   # window closed with the mouse
+            print("window was closed: stopping")
             return "quit"
         msg = "tag: 1 blur  2 glove  3 dark  4 overlap  5 reentry" if state["tag_mode"] else state["msg"]
         cv2.imshow(WINDOW, draw(img, d, scale, header, msg))
@@ -287,6 +291,8 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
         if key == 255:
             continue
         ch = chr(key).lower()
+        if DEBUG:
+            print(f"key {key} {ch!r}")
         if state["tag_mode"]:
             state["tag_mode"] = False
             if ch in "12345":
@@ -300,6 +306,7 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
         elif ch == "x":
             return "skip"
         elif ch in ("q", "\x1b"):
+            print("q pressed: stopping")
             return "quit"
         elif ch in ("n", "\r", "\n", " "):
             state["msg"] = d.problem() or ""
@@ -360,8 +367,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--labeller", required=True, help="your first name, lowercase")
     ap.add_argument("--n", type=int, default=40, help="frames to label (ignored with --shared)")
     ap.add_argument("--shared", action="store_true", help=f"the common {SHARED_N}-frame set (same frames for everyone)")
+    ap.add_argument("--debug", action="store_true", help="print every key and click")
     ap.add_argument("--scale", type=float, default=None, help="window zoom (default: fit the frame in 1200x660)")
     a = ap.parse_args(argv)
+    global DEBUG
+    DEBUG = a.debug
     run(a.clip, a.labeller, a.n, a.shared, a.scale)
     return 0
 
