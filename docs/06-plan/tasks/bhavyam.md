@@ -12,7 +12,7 @@
 - [x] `python -m egovision.quality.redact --clip X --out <path>` writes a redacted preview (local only).
 - Done when: test on a synthetic image (face-like detector mocked); manual 20-frame spot check on a real clip. _(tests pass; real-clip spot check waits for `data/egohack-data/` on this laptop)_
 - Known limits, measured on stock photos: faces under ~20 px at 480p are missed; profile faces can be missed; each frame is detected alone, so a weak face can flicker for single frames; a hand box over a face stays sharp, as specified.
-- Scan of all 40 clips (one frame per 2 s, totals only): faces in 1196 of 3600 frames, every clip has some. Of faces scoring ≥ 0.9, 16 of 16 sit inside a detected person; 47 of 68 at 0.8–0.9; about 40 % below 0.8, so many weak ones are false alarms. A person with no face found in 230 of 385 frames (back views, side views or real misses; human check needed). Screens in 3, paper in 3 of 1200 frames. Detection on real 1080p frames: 68 ms per frame, one job.
+- Scan of all 40 clips (one frame per 2 s, totals only): faces in 1196 of 3600 frames, every clip has some. Of faces scoring ≥ 0.9, 16 of 16 sit inside a detected person; 47 of 68 at 0.8–0.9; about 40 % below 0.8, so many weak ones are false alarms. A person with no face found in 230 of 385 frames (back views, side views or real misses; human check needed). Screens in 3, paper in 3 of 1200 frames. Detection alone on real 1080p frames: 68 ms per frame. Full preview on the clip with most faces: 190 ms per frame, about 17 min for a 3-min clip (read, detect, blur, write).
 
 ⛔ **CHECKPOINT B-1** · Show: redacted preview of a clip with a face or screen; any misses.
 
