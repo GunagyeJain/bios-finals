@@ -38,14 +38,14 @@ _Built and measured before the cut, then reverted: commit 9129397, undone by the
 ⛔ **CHECKPOINT B-3** · Show: recall with and without plug-ins (A5 numbers), 3 recovered moments, ms per call.
 
 ## B5 · Safety alerts → `alerts_safety.csv` (2 h) · P1
-- [ ] `safety/run.py: run(clip)`: from `objects.jsonl`, fixed objects with `moving: true` (or frame-difference inside the box > threshold); alert when any fingertip is within `0.5 × hand size` for ≥ 0.5 s. `kind="safety"`, detail says hand, distance, object. Per task/time, never per worker.
+- [x] `safety/run.py: run(clip)`: from `objects.jsonl`, fixed objects with `moving: true` (or frame-difference inside the box > threshold); alert when any fingertip is within `0.5 × hand size` for ≥ 0.5 s. `kind="safety"`, detail says hand, distance, object. Per task/time, never per worker.
 - Fallback: G2 not ready → develop on `fixture_001` (has a moving "press machine").
 - Done when: test on synthetic tracks; alerts on one real clip checked by eye.
 
 ⛔ **CHECKPOINT B-4** · Show: each alert time on one demo clip; true or false alarm?
 
 ## B6 · Capture-feedback paragraph (1 h) · P2
-- [ ] Function `capture_feedback(clip) -> str` in `quality/feedback.py` ("camera too high 40 %", "dark from 01:10"). Gunagye's datasheet calls it if present.
+- [x] Function `capture_feedback(clip) -> str` in `quality/feedback.py` ("camera too high 40 %", "dark from 01:10"). Gunagye's datasheet calls it if present.
 
 ## Everyone tasks
 - [ ] E2 (by 17:00): skim 5 clips → `docs/04-research/clip-notes.md`.

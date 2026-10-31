@@ -30,3 +30,5 @@ EDGE_SOFT = 0.5        # share of hand frames with a hand cut by the edge
 HAND_Y_MIN = 0.25      # mean hand height, 0 top, 1 bottom
 HAND_Y_MAX = 0.9
 AGREEMENT_SOFT = 0.6
+
+FEEDBACK_MIN_RUN_S = 5  # a problem's longest stretch is named from this length up
