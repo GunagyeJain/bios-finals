@@ -44,8 +44,10 @@ Coordinates: pixels of the video in `meta.json`. Keypoints: MediaPipe order (0 w
 ```json
 {"clip": "factory_003", "labeller": "shefali",
  "frames": [{"frame": 812, "tags": ["blur", "glove"],
-             "hands": [{"side": "right", "bbox": [..], "wrist": [x, y], "tips": [[x, y], "...5"] }]}]}
+             "hands": [{"side": "right", "bbox": [..], "wrist": [x, y], "tips": [[x, y], "...5"],
+                        "prefill": "rtmlib", "edited": true}]}]}
 ```
+`prefill`: model whose suggestion the hand started from (`rtmlib`, `gemini`), `null` = clicked by hand. `edited`: the labeller moved a suggested point or flipped a guessed side (always `false` when `prefill` is `null`). Suggestions come from `python -m egovision.eval.prelabel` → `outputs/prelabels/<clip>__<labeller>.json` (git-ignored); `--shared` frames never get them.
 Frame images used while labelling stay in `eval/frames/` (git-ignored).
 
 ## 3. SQLite index: `outputs/index.db`

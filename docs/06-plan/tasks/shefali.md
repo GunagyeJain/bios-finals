@@ -12,6 +12,8 @@
 - [ ] One-paragraph how-to at the top of the file; post the command in chat.
 - Done when: test for the JSON writer; you labelled 5 frames end to end on a real clip.
 
+- [x] Pre-labelling: `python -m egovision.eval.prelabel --clip X --labeller <name>` (rtmlib points, no side), then label as usual; `--shared` stays manual.
+
 ⛔ **CHECKPOINT S-1** · Show: label 3 frames live in front of the member; the JSON written.
 
 ## S2 · Gemini step captions → `steps.csv` (2.5 h) · P1
