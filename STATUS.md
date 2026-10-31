@@ -26,7 +26,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
 | Abhijay | Done: A6 frozen (recall 41 to 66, L/R 96.6 to 95.7 on 282 hands), `validate_export.py` (11/11 on a real export), `where-it-fails.md`. Gloves and dark have no labelled frames |
 | Shefali | Done: 40 labels, S2 (gemini-3.8-flash, mocked tests; Gunagye runs demo clips), S3 order check, README, slides.md + demo script + Q&A · Next: deck export from slides.md once Metrics numbers exist, demo video, 09:30 fresh-clone test |
-| Bhavyam | Done: B3 on final hands (59 / 16 / 25 green, yellow, red on 40 clips), B5 (0 alerts on demo clips after eye check failed, keep Safety out of the demo), B6, labels, business + legal text, `robot_overlay.py`, `robot-view.md` · Now: face blur precision, real-clip overlay check · **Flag:** robot-fit rests on unlabelled grabs with median confidence 0.15; see `robot-view.md` |
+| Bhavyam | All sprint 3 tasks done: `robot_overlay.py` (2f and 5f, demo clips render with 2700 frames each), `robot-view.md`, safety (0 alerts on demo clips, keep it out of the demo), face blur rebuilt with a whole-clip scan, B3 final (59 / 16 / 25 on 40 clips), B6, labels, business + legal text · Morning: Gunagye run `--scan` then `robot_overlay` on the demo clips and merge the Requests in `tasks/bhavyam.md`; Bhavyam watch one robot video and `blur_final.mp4`; clip notes 11-15 still need task and gloves by eye · **Flag:** robot-fit rests on unlabelled grabs, median confidence 0.15; see `robot-view.md` |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
 ## Key dates
