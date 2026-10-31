@@ -27,10 +27,10 @@
 ⛔ **CHECKPOINT S-2** · Show: steps table for one real clip next to the video; how many look right out of 10; API calls used.
 
 ## S3 · Order check → `alerts_steps.csv` (2 h) · P1
-- [ ] `steps/order.py: run(clip)`: concatenate steps of all clips of the same factory (`meta.json` → `factory`, order by clip name) into `verb:object` tokens; most frequent repeated sub-sequence of length 3–8 = reference cycle; or `outputs/references/<factory>.json` if a reviewer marked one.
-- [ ] Align each cycle to the reference (edit distance) → `step_missing`, `step_order`, `step_extra` alerts for **this clip**. Also fill `cycle_idx` logic description in the docstring.
-- [ ] No repeat → write an empty `alerts_steps.csv` (header only) so the stage counts as done.
-- [ ] Function `save_reference(factory, steps: list[dict])` for the app's "Mark as reference" button.
+- [x] `steps/order.py: run(clip)`: concatenate steps of all clips of the same factory (`meta.json` → `factory`, order by clip name) into `verb:object` tokens; most frequent repeated sub-sequence of length 3–8 = reference cycle; or `outputs/references/<factory>.json` if a reviewer marked one.
+- [x] Align each cycle to the reference (edit distance) → `step_missing`, `step_order`, `step_extra` alerts for **this clip**. Also fill `cycle_idx` logic description in the docstring.
+- [x] No repeat → write an empty `alerts_steps.csv` (header only) so the stage counts as done.
+- [x] Function `save_reference(factory, steps: list[dict])` for the app's "Mark as reference" button.
 - Done when: tests for cycle finding + alignment on synthetic token lists; `fixture_001` gives the known `step_missing`.
 
 ⛔ **CHECKPOINT S-3** · Show: reference cycle per factory (or "none"), alerts for one clip, true or false?
