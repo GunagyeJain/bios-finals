@@ -12,15 +12,16 @@ BLUR_MIN_KERNEL = 15   # px
 
 # Data Health light (B3). Pixel checks run on small frames, so they read the same on any clip size.
 SMALL_WIDTH = 160
+BLUR_WIDTH = 480       # sharpness needs more pixels: keeps 19 % after a 15 px blur, 160 px keeps 62 %
 SAMPLE_STEP = 3        # frames between samples, 10 per second at 30 fps
 DARK_PIXEL = 40        # gray level under this counts as a dark pixel
 CLIPPED_PIXEL = 245
 DARK_SOFT = 0.5        # share of dark pixels
 DARK_HARD = 0.85
 CLIPPED_SOFT = 0.3
-BLUR_SOFT = 150.0      # Laplacian variance
-BLUR_HARD = 50.0
-SPEED_SOFT = 4.0       # median optical flow, small-frame px per sample
+BLUR_SOFT = 0.5        # Laplacian variance as a share of the clip's median second; about 3 % of seconds on all clips
+BLUR_HARD = 0.25       # about 0.2 % of seconds
+SPEED_SOFT = 3.5       # median optical flow, small-frame px per sample; about the fastest 5 % of seconds
 FROZEN_DIFF = 0.3      # mean gray change per sample; below this all second = frozen
 HANDS_SOFT = 0.6       # share of frames with a hand
 HANDS_HARD = 0.3

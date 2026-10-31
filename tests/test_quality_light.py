@@ -7,7 +7,7 @@ from egovision.schema import FrameHands, Hand
 
 
 def good(**over):
-    m = {"blur": 400.0, "brightness": 0.5, "dark_share": 0.1, "clipped_share": 0.0, "speed": 0.5,
+    m = {"blur_rel": 1.0, "brightness": 0.5, "dark_share": 0.1, "clipped_share": 0.0, "speed": 0.5,
          "frozen": False, "hands_visible": 1.0, "edge_cut": 0.0, "hand_y": 0.6, "agreement": 0.9}
     return {**m, **over}
 
@@ -17,14 +17,14 @@ def test_clean_second_is_green():
 
 
 @pytest.mark.parametrize("over,reason", [
-    ({"dark_share": 0.95}, "dark"), ({"frozen": True}, "frozen"), ({"blur": 10.0}, "blur"),
+    ({"dark_share": 0.95}, "dark"), ({"frozen": True}, "frozen"), ({"blur_rel": 0.05}, "blur"),
     ({"hands_visible": 0.1}, "hands_out")])
 def test_each_hard_fail_is_red(over, reason):
     assert light.judge(good(**over)) == ("red", reason)
 
 
 @pytest.mark.parametrize("over,reason", [
-    ({"dark_share": 0.6}, "dim"), ({"clipped_share": 0.5}, "clipped"), ({"blur": 100.0}, "blur"),
+    ({"dark_share": 0.6}, "dim"), ({"clipped_share": 0.5}, "clipped"), ({"blur_rel": 0.3}, "blur"),
     ({"speed": 9.0}, "fast_head"), ({"hands_visible": 0.5}, "hands_partial"), ({"edge_cut": 0.8}, "edge_cut"),
     ({"hand_y": 0.1}, "camera_angle"), ({"hand_y": 0.97}, "camera_angle"), ({"agreement": 0.3}, "disagree")])
 def test_each_soft_fail_is_yellow(over, reason):
@@ -83,6 +83,12 @@ def texture(seed=0):
 def test_frame_metrics_separate_sharp_from_blurred():
     sharp, soft = texture(), cv2.GaussianBlur(texture(), (15, 15), 0)
     assert light.frame_metrics(sharp, None)["blur"] > 10 * light.frame_metrics(soft, None)["blur"]
+
+
+def test_sharpness_reads_the_detail_copy_when_given():
+    small = np.full((90, 160), 128, np.uint8)
+    assert light.frame_metrics(small, None)["blur"] == 0
+    assert light.frame_metrics(small, None, detail=texture())["blur"] > 0
 
 
 def test_frame_metrics_read_dark_and_clipped_pixels():

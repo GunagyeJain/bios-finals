@@ -17,10 +17,16 @@ from ..io.frames import build_meta, frames
 from ..schema import QUALITY_COLS, ClipPaths, FrameHands, read_hands, read_meta, write_csv
 
 
-def frame_metrics(gray: np.ndarray, prev: np.ndarray | None) -> dict:
-    """One small grayscale frame. `prev` is the sample before it; None on the first one."""
-    m = {"blur": cv2.Laplacian(gray, cv2.CV_64F).var(), "brightness": gray.mean() / 255,
-         "dark": (gray < P.DARK_PIXEL).mean(), "clipped": (gray > P.CLIPPED_PIXEL).mean()}
+def shrink(gray: np.ndarray, width: int) -> np.ndarray:
+    return cv2.resize(gray, (width, round(gray.shape[0] * width / gray.shape[1])), interpolation=cv2.INTER_AREA)
+
+
+def frame_metrics(gray: np.ndarray, prev: np.ndarray | None, detail: np.ndarray | None = None) -> dict:
+    """One small grayscale frame. `prev` is the sample before it, None on the first one. Sharpness
+    reads `detail`, a larger copy of the frame: at 160 px it barely reacts to motion blur."""
+    m = {"blur": cv2.Laplacian(gray if detail is None else detail, cv2.CV_64F).var(),
+         "brightness": gray.mean() / 255, "dark": (gray < P.DARK_PIXEL).mean(),
+         "clipped": (gray > P.CLIPPED_PIXEL).mean()}
     if prev is not None:
         flow = cv2.calcOpticalFlowFarneback(prev, gray, None, 0.5, 2, 9, 2, 5, 1.1, 0)
         m["speed"] = float(np.median(np.hypot(flow[..., 0], flow[..., 1])))
@@ -58,9 +64,9 @@ def judge(m: dict) -> tuple[str, str]:
         soft.append("clipped")
     if m["frozen"]:
         hard.append("frozen")
-    if m["blur"] < P.BLUR_HARD:
+    if m["blur_rel"] < P.BLUR_HARD:
         hard.append("blur")
-    elif m["blur"] < P.BLUR_SOFT:
+    elif m["blur_rel"] < P.BLUR_SOFT:
         soft.append("blur")
     if m["speed"] > P.SPEED_SOFT:
         soft.append("fast_head")
@@ -100,14 +106,18 @@ def run(clip: str) -> None:
             per_second[int(f.t)].append(f)
     samples: dict[int, list[dict]] = defaultdict(list)
     prev = None
-    for _, t, img in frames(p.video, step=P.SAMPLE_STEP, width=P.SMALL_WIDTH):
+    for _, t, img in frames(p.video, step=P.SAMPLE_STEP):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        samples[int(t)].append(frame_metrics(gray, prev))
-        prev = gray
+        small = shrink(gray, P.SMALL_WIDTH)
+        samples[int(t)].append(frame_metrics(small, prev, shrink(gray, P.BLUR_WIDTH)))
+        prev = small
+    segments = {sec: segment(s, hand_metrics(per_second.get(sec, []), meta["width"], meta["height"]))
+                for sec, s in sorted(samples.items())}
+    # shortcut: sharpness is relative to the clip, factories differ 2x; a clip blurred end to end stays green
+    typical = float(np.median([m["blur"] for m in segments.values()])) or 1.0
     rows = []
-    for sec in sorted(samples):
-        m = segment(samples[sec], hand_metrics(per_second.get(sec, []), meta["width"], meta["height"]))
-        light, reasons = judge(m)
+    for sec, m in segments.items():
+        light, reasons = judge({**m, "blur_rel": m["blur"] / typical})
         rows.append({"clip": clip, "t_start": sec, "t_end": sec + 1, "light": light, "reasons": reasons,
                      "blur": round(m["blur"], 1), "brightness": round(m["brightness"], 3),
                      "hands_visible": round(m["hands_visible"], 3), "edge_cut": round(m["edge_cut"], 3),
