@@ -1,7 +1,7 @@
 """A2-A6 · owner: Abhijay. Task: docs/06-plan/tasks/abhijay.md
 
 Sensitive MediaPipe pass, mirror fix, track IDs, side voting, recovery plug-ins, WiLoR merge, sanity, gap fill, One-Euro.
-In: hands_sensitive.jsonl, made on first run (+ wilor.jsonl if present)  Out: hands.jsonl (every frame).
+In: hands_sensitive_<threshold>.jsonl, made on first run (+ wilor.jsonl if present)  Out: hands.jsonl (every frame).
 hands_baseline stays the untouched "before" that the metrics compare with.
 Calls egovision.recovery.api.recover_missing / agreement (no-op until Bhavyam fills them).
 """
@@ -126,11 +126,11 @@ def stats(before: list[FrameHands], after: list[FrameHands], n_frames: int, fps:
 
 def sensitive_rows(clip: str) -> list[FrameHands]:
     """Our detection pass with low thresholds, cached next to the other outputs. MediaPipe's starter
-    thresholds drop many real hands: on the first labelled clip recall went from 0.60 to 0.85."""
+    thresholds drop many real hands. The file name carries the threshold, so changing it re-detects."""
     p = ClipPaths(clip)
-    path = p.dir / "hands_sensitive.jsonl"
+    conf = params.SENSITIVE_CONF
+    path = p.dir / f"hands_sensitive_{conf}.jsonl"
     if not path.exists():
-        conf = params.SENSITIVE_CONF
         tmp = path.with_suffix(".tmp")
         write_hands(tmp, _detect(clip, conf, conf, conf))
         tmp.replace(path)
