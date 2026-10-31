@@ -177,3 +177,7 @@ def test_not_partial_with_enough_labels(clip_files, tmp_path):
 def test_box_size_uses_the_longer_side():
     assert M.label_size({"bbox": [0, 0, 10, 40]}) == 40
     assert np.array_equal(M.label_points(label()).shape, (6, 2))
+
+
+def test_final_fps_counts_detection_and_refine():
+    assert M.final_fps(10.0, 1000.0, 2) == 9.8

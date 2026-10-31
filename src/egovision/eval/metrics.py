@@ -290,8 +290,18 @@ def measure_fps(clip: str, n: int = FPS_FRAMES) -> float:
     return round(done / max(time.time() - t0, 1e-6), 1)
 
 
+def final_fps(detect: float, refine: float, step: int) -> float:
+    """Final hands = a MediaPipe pass (fps per processed frame) + refine (fps per video frame), per processed frame."""
+    return round(1 / (1 / detect + step / refine), 1)
+
+
 def hardware() -> str:
-    return f"{platform.processor() or platform.machine()}, {platform.system()}, CPU only"
+    name = platform.processor() or platform.machine()
+    if platform.system() == "Windows":   # platform.processor() only gives a family and model number there
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as key:
+            name = winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
+    return f"{name}, CPU only"
 
 
 # ---------- one clip ----------
@@ -337,7 +347,9 @@ def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
         speed["hands_baseline"] = measure_fps(clip)
     stats = p.dir / "hands_stats.json"
     if stats.exists() and "fps" in (s := json.loads(stats.read_text(encoding="utf-8"))):
-        speed["hands"] = s["fps"]
+        speed["refine"] = s["fps"]
+    if speed.get("hands_baseline") and speed.get("refine"):
+        speed["hands"] = final_fps(speed["hands_baseline"], speed["refine"], step)
     ours = results.get("ours", {})
     m: dict = {"clip": clip, "partial": total < FULL_LABELS, "n_labels": len(labels), "labels_total_team": total,
                "labellers": sorted(by_labeller), **results, "per_light": per_light(results),

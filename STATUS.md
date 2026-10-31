@@ -24,7 +24,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Who | What |
 |---|---|
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
-| Abhijay | A6 pushed (thresholds 0.2, two-way smoothing, same-side fix); final 40-clip run → export validator pushed → `where-it-fails.md` |
+| Abhijay | A6 done and frozen (recall 41 to 66, L/R 96.6 to 95.7 on 282 hands); `validate_export.py` and `where-it-fails.md` pushed; checking a real export |
 | Shefali | Done: 40 labels, S2 (gemini-3.8-flash, mocked tests; Gunagye runs demo clips), S3 order check, README, slides.md + demo script + Q&A · Next: deck export from slides.md once Metrics numbers exist, demo video, 09:30 fresh-clone test |
 | Bhavyam | B3, B6, labels done; B5 on demo clips, alerts awaiting eye check; business + legal slide text pushed; light rerun on final hands running |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
