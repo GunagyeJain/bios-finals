@@ -66,9 +66,21 @@ def failed(hand: dict, pred: list) -> bool:
     return not pairs or hand["side"] != pred[pairs[0][1]].side or bool((pairs[0][2] > M.PCK_THRESHOLD).any())
 
 
-def collect(clips: list[str]) -> tuple[dict[str, Mode], int, M.Tally]:
+def side_split(label_hands: list[dict], ours: list, base: list) -> dict[str, list[int]]:
+    """Left/right on our found hands: [correct, total], split by whether the baseline found that hand too."""
+    known = {i for i, _, _ in M.match(label_hands, base)}
+    out = {"both": [0, 0], "new": [0, 0]}
+    for i, j, _ in M.match(label_hands, ours):
+        group = out["both" if i in known else "new"]
+        group[0] += label_hands[i]["side"] == ours[j].side
+        group[1] += 1
+    return out
+
+
+def collect(clips: list[str]) -> tuple[dict[str, Mode], int, M.Tally, dict[str, list[int]]]:
     modes: dict[str, Mode] = defaultdict(Mode)
     total, overall = 0, M.Tally()
+    sides = {"both": [0, 0], "new": [0, 0]}
     for clip in clips:
         p = ClipPaths(clip)
         meta = read_meta(p.meta)
@@ -79,6 +91,9 @@ def collect(clips: list[str]) -> tuple[dict[str, Mode], int, M.Tally]:
             t = frame / meta["fps"]
             pred = ours.get(frame, [])
             overall.add(label["hands"], pred)
+            for key, (ok, n) in side_split(label["hands"], pred, base.get(frame, [])).items():
+                sides[key][0] += ok
+                sides[key][1] += n
             for hand in label["hands"]:
                 total += 1
                 for name in modes_of(hand, label.get("tags", []), reasons_at(quality, t), meta["width"], meta["height"]):
@@ -87,7 +102,7 @@ def collect(clips: list[str]) -> tuple[dict[str, Mode], int, M.Tally]:
                     m.base.add([hand], base.get(frame, []), count_preds=False)
                     if failed(hand, pred):
                         m.examples.setdefault(clip, t)
-    return modes, total, overall
+    return modes, total, overall, sides
 
 
 def pct(v) -> str:
@@ -98,7 +113,7 @@ def mmss(t: float) -> str:
     return f"{int(t // 60)}:{int(t % 60):02d}"
 
 
-def render(modes: dict[str, Mode], total: int, overall: M.Tally, clips: list[str]) -> str:
+def render(modes: dict[str, Mode], total: int, overall: M.Tally, clips: list[str], sides: dict[str, list[int]]) -> str:
     all_r = overall.result()
     rank = sorted(MODES, key=lambda k: -(modes[k].tally.labels - modes[k].tally.matched) if k in modes else 1)
     lines = ["# Where it fails", "",
@@ -107,6 +122,10 @@ def render(modes: dict[str, Mode], total: int, overall: M.Tally, clips: list[str
              f"All labelled hands, final pipeline: {pct(all_r['detection_recall'])} found, {pct(all_r['pck_0.2'])} of points on found "
              "hands within 20 % of the box. Labelled frames lean towards hard moments on purpose, and a hand can count in "
              "several rows.", "",
+             f"Left/right on found hands: {pct(all_r['lr_accuracy'])} overall, {pct(sides['both'][0] / sides['both'][1] if sides['both'][1] else None)} "
+             f"on hands the baseline also finds ({sides['both'][0]}/{sides['both'][1]}), "
+             f"{pct(sides['new'][0] / sides['new'][1] if sides['new'][1] else None)} on the newly found ones "
+             f"({sides['new'][0]}/{sides['new'][1]}).", "",
              "| Failure mode | Labelled hands | Share | Found: baseline → ours | Points OK on found hands |", "|---|---:|---:|---:|---:|"]
     for k in rank:
         m = modes.get(k)
@@ -134,8 +153,8 @@ def main() -> int:
     if not clips:
         print("no labelled clip has hands.jsonl on this laptop")
         return 1
-    modes, total, overall = collect(clips)
-    OUT.write_text(render(modes, total, overall, clips), encoding="utf-8", newline="\n")
+    modes, total, overall, sides = collect(clips)
+    OUT.write_text(render(modes, total, overall, clips, sides), encoding="utf-8", newline="\n")
     print(f"wrote {OUT}")
     return 0
 

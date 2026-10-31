@@ -74,6 +74,14 @@ post done/next in chat; morning report at 06:30.
    switch to 2-finger robot view; Export (green only) → datasheet; Metrics. ≤ 2 minutes.
 ```
 
+## Handoff for Gunagye's session (from Abhijay, hands code final)
+`numbers.md` from 00:09 predates the left/right fix (`19f8618`, 00:30), so its 92.9 % is out of date. Before the 07:00 integration:
+1. `git pull`, then re-run the hands stage on the 3 demo clips and every labelled clip: `python -m egovision run --clip <clip> --stage hands --force`. The first run per clip does a new MediaPipe pass (about 4 min); later runs take seconds.
+2. `python -m egovision.eval.metrics --all`, then `python scripts/pitch_numbers.py` and `python scripts/where_it_fails.py`. Expect left/right near 95.7 % and recall near 66 %. If not, flag it in `STATUS.md`; don't patch `hands/`.
+3. Run `python scripts/validate_export.py exports/<name>` on the final demo export. It passed 11/11 on a test export without steps or contacts.
+
+Pitch wording for left/right: matches the baseline within measurement error while finding many more hands; give the split on hands both versions find (`where-it-fails.md`). Quote the numbers from the regenerated files. No labelled frame covers gloves or dark footage, so make no accuracy claim there.
+
 ## Open (decide by 08:00)
 - Evaluators need access to a private repo whose history contains the organisers' private brief PDF:
   ask the organisers whether the repo may go public as is, or add the evaluators as collaborators. Never rewrite history.

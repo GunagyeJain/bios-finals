@@ -54,6 +54,15 @@ def test_unmeasured_mode_says_so_and_examples_are_times():
     mode.examples["clipx"] = 83.0
     overall = M.Tally()
     overall.add([label()], [])
-    text = W.render({"overlap": mode}, 1, overall, ["clipx"])
+    text = W.render({"overlap": mode}, 1, overall, ["clipx"], {"both": [99, 100], "new": [0, 0]})
+    assert "99 % on hands the baseline also finds (99/100)" in text and "n/a on the newly found" in text
     assert "`clipx` at 1:23" in text and "| Gloves | 0 | 0 % | not measured" in text
     assert "no accuracy number" in text
+
+
+def test_side_split_separates_hands_the_baseline_also_found():
+    hands = [label(), label((500.0, 100.0, 600.0, 200.0), "right")]
+    other = pred("left")
+    other.kp2d = [[x + 400, y] for x, y in other.kp2d]      # sits on the second labelled hand, wrong side
+    out = W.side_split(hands, [pred(), other], [pred()])
+    assert out == {"both": [1, 1], "new": [0, 1]}
