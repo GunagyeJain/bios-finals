@@ -31,7 +31,8 @@ def moving_boxes(rows: list[dict], times: list[float], t: float) -> list[dict]:
     if i < 0 or t - times[i] > P.OBJECT_HOLD_S:
         return []
     return [o for o in rows[i]["objects"]
-            if o["kind"] == "fixed" and o["moving"] and o["name"] not in P.NEVER_MOVES]
+            if o["kind"] == "fixed" and o["moving"] and o["name"] not in P.NEVER_MOVES
+            and o["score"] >= P.MIN_OBJECT_SCORE]
 
 
 def intervals(hits: list[tuple[float, float]]) -> list[tuple[float, float, float]]:

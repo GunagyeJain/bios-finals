@@ -5,3 +5,5 @@ JOIN_GAP_S = 0.25       # a shorter break does not end a stretch: detection and 
 OBJECT_HOLD_S = 1.0     # objects run on sparse frames; a row stays valid this long
 # Furniture: a workbench read as moving in up to 41 % of rows on the demo clips and made 61 of 86 alerts
 NEVER_MOVES = ("workbench", "table", "shelf", "rack")
+# Human review of 15 alerts on two demo clips: boxes did not match the object. All sat near score 0.12, none reached 0.4
+MIN_OBJECT_SCORE = 0.4

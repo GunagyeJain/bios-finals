@@ -77,6 +77,13 @@ def test_furniture_never_alerts_even_when_flagged_moving(name):
     assert not safety.find_alerts("c", frames(2, lambda t: [hand(480)]), object_rows(2, name=name))
 
 
+def test_a_box_the_detector_barely_believes_never_alerts():
+    rows = object_rows(2)
+    for r in rows:
+        r["objects"][0]["score"] = P.MIN_OBJECT_SCORE - 0.01
+    assert not safety.find_alerts("c", frames(2, lambda t: [hand(480)]), rows)
+
+
 def test_a_short_gap_joins_and_a_long_gap_splits():
     gap = P.JOIN_GAP_S
     short = frames(4, lambda t: [] if 1.5 <= t < 1.5 + gap / 2 else [hand(480)])
