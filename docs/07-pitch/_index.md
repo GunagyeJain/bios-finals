@@ -1,6 +1,6 @@
 # 07-pitch
 
-- `outline.md`: 6-slide outline, each slide tagged with the judging criterion it serves; mock-up rules
-- `demo-script.md`: demo video (2:00 max) shot list from the demo clips; organisers' Drive only
-- `qa.md`: likely judge questions and answers (to add)
+- `slides.md`: the 6 slides, content and drawn visuals; numbers come from the Metrics page; repo link on slide 1
+- `demo-script.md`: 2-minute demo, what to click and what to say; also the demo video (organisers' Drive only)
+- `qa.md`: 10 likely judge questions with short answers
 - final deck exports (`.pdf`, `.pptx`) go to the organisers' Drive, not here
