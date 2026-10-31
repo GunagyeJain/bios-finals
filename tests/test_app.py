@@ -51,3 +51,9 @@ def test_empty_state_without_index(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(APP))
     at = _run("Home.py")
     assert not at.exception and "No clips indexed yet" in _html(at)
+
+
+def test_export_page_previews_episodes(indexed):
+    at = _run("pages/2_Export.py")
+    assert not at.exception
+    assert "Episodes" in _html(at) and at.button[0].label == "Build dataset"
