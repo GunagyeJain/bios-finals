@@ -4,21 +4,22 @@
 # assembly of plastic parts and tube profiles (SKL00089), polishing at a lapping wheel (000003),
 # tiles/stone (000060). Fewer, concrete names detect better than many vague ones.
 PORTABLE = ["screwdriver", "pliers", "hammer", "power drill", "angle grinder", "scissors", "knife",
-            "tape dispenser", "caliper", "dial gauge", "brush", "bottle", "cable", "plastic part",
-            "metal part", "wooden plank", "wooden frame", "aluminium profile", "tile", "box", "cloth",
-            "phone"]
+            "tape dispenser", "tape roll", "caliper", "dial gauge", "brush", "bottle", "cable",
+            "green plastic part", "plastic part", "metal part", "wooden plank", "wooden frame",
+            "aluminium channel", "tile", "box", "cloth"]  # no "phone": green plates got that name
 FIXED = ["machine", "polishing wheel", "workbench", "table", "conveyor rollers", "shelf", "rack"]
 
 MODEL = "yoloe-11s-seg.pt"  # smallest text-prompt YOLOE; downloaded into models/ on first run
 DETECT_EVERY = 5          # YOLOE on every 5th processed frame; boxes held in between
-CONF = 0.25
+CONF = 0.10               # 0.25 found a contact candidate in 2-4 of 40 hand frames, 0.10 in 10-15
 IMGSZ = 640
 TRACK_IOU = 0.3           # same name + IoU >= this between runs keeps the object id
+KEEP_RUNS = 1             # an object missed by YOLOE stays for this many more runs (last box)
 
 # Contact rule (problem statement p.12)
 PAD = 0.15                # box padded by 15 % of its width/height on each side
 MIN_TIPS = 2              # fingertips inside the padded box
-CLOSURE_MAX = 0.9         # rule.closure(): fist ~0.3, power grip ~0.6, open flat hand ~1.0+
+CLOSURE_MAX = 1.2         # rule.closure(): fist ~0.3, power grip ~0.6, pinch of a thin plate 1.0-1.3
 ON_FRAMES = 4             # consecutive frames before a contact starts
 OFF_FRAMES = 6            # consecutive frames without it before it ends
 

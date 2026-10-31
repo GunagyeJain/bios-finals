@@ -59,14 +59,18 @@ def run(clip: str) -> None:
     kind = {n: "portable" for n in P.PORTABLE} | {n: "fixed" for n in P.FIXED}
     model = load_model(list(kind))
 
-    objs, next_id, prev_gray = [], 0, None
+    objs, next_id, prev_gray, last_run = [], 0, None, {}
     obj_rows, seen = [], {}
     samples = {s: [] for s in SIDES}
     for k, (i, t, img) in enumerate(frames(p.video, step=step)):
         frame_hands = hands.get(i, [])
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         if k % P.DETECT_EVERY == 0:
-            objs, next_id = rule.assign_ids(objs, detect(model, img, kind), next_id)
+            new, next_id = rule.assign_ids(objs, detect(model, img, kind), next_id)
+            last_run |= {o["id"]: k for o in new}
+            ids = {o["id"] for o in new}
+            objs = new + [o for o in objs if o["id"] not in ids
+                          and k - last_run[o["id"]] <= P.KEEP_RUNS * P.DETECT_EVERY]
             boxes = [o["bbox"] for o in objs]
             flags = (rule.moving(prev_gray, gray, boxes, ignore=[h.bbox for h in frame_hands])
                      if prev_gray is not None else [False] * len(objs))
@@ -77,12 +81,13 @@ def run(clip: str) -> None:
         for side in SIDES:
             o, n = rule.pick_object(by_side[side].kp2d, objs) if side in by_side else (None, 0)
             if o is not None:
-                seen[o["id"]] = o
-            samples[side].append((t, o["id"] if o else None, o["score"] * min(1.0, n / 3) if o else 0.0))
+                seen.setdefault((side, o["name"], t), o)
+            # keyed by name: ids change when head motion breaks the IoU match, the object doesn't
+            samples[side].append((t, o["name"] if o else None, o["score"] * min(1.0, n / 3) if o else 0.0))
 
     write_jsonl(p.objects, obj_rows)
     rows = [{"clip": clip, "t_start": round(a, 3), "t_end": round(b, 3), "hand": side,
-             "state": seen[oid]["kind"], "object_name": seen[oid]["name"], "object_id": oid,
-             "confidence": round(conf, 3), "grip": "unsure"}
-            for side in SIDES for a, b, oid, conf in rule.hysteresis(samples[side])]
+             "state": seen[side, name, a]["kind"], "object_name": name,
+             "object_id": seen[side, name, a]["id"], "confidence": round(conf, 3), "grip": "unsure"}
+            for side in SIDES for a, b, name, conf in rule.hysteresis(samples[side])]
     write_csv(p.contacts, CONTACT_COLS, sorted(rows, key=lambda r: (r["t_start"], r["hand"])))

@@ -12,7 +12,7 @@
 - [x] `contact/run.py: run(clip)`: YOLOE (smallest model) every 5th processed frame with text prompts from `contact/params.py` (`PORTABLE`, `FIXED` lists; edit after E2 clip notes). Object ids by IoU between runs; `moving` = frame difference inside the box.
 - [x] Contact rule (p.12): ≥ 2 tips in box + 15 % pad, plus closure; hysteresis on after 4 frames, off after 6 → intervals per hand with state `none|portable|fixed`.
 - [x] `grip` column: `unsure` for now (F11 is P2: `2f` if only thumb + index tips in box, `5f` if ≥ 3).
-- Done when: tests for the rule + hysteresis; `check` OK on one real clip. _(tests + fixture check pass; real-clip check waits for `data/egohack-data/` on this laptop)_
+- Done when: tests for the rule + hysteresis; `check` OK on one real clip. _(done: `check` OK on MTL-SKL00089-005 and MTL-SGF00106-021)_
 
 ⛔ **CHECKPOINT G-1** · Show: contact intervals for 1 min of a real clip vs the video; object names right?
 
