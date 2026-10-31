@@ -10,6 +10,9 @@ digit toggles a tag (1 blur, 2 glove, 3 dark, 4 overlap, 5 reentry), `q` saves a
 written to disk at once, so quitting and running the same command again resumes where you stopped.
 If the window shows but ignores keys or clicks (seen on macOS), add `--web` and open http://localhost:8765:
 same labels and keys in the browser, tags on keys 1 to 5 directly, Ctrl-C in the terminal to stop.
+Faster: run `python -m egovision.eval.prelabel` with the same --clip/--labeller/--n first. Suggested
+points then show as hollow rings: check each one, click near a ring to move it, `c` removes a wrong hand,
+always press `l`/`r`. Each saved hand records `prefill` and `edited`. --shared frames never get suggestions.
 """
 from __future__ import annotations
 
@@ -33,6 +36,9 @@ HARD_SHARE = 0.6
 SHARED_N = 30
 SHARED_SEED = 1702
 MAX_HANDS = 2
+PREFILLS = (None, "rtmlib", "gemini")              # where a hand's starting points came from
+PREFILL_SIDE = False                               # guessed sides were wrong on 2 of 3 checked frames: labeller sets L/R
+PREFILL_RADIUS = 0.06                              # a click within 6 % of the frame width moves a suggested point
 WINDOW = "label_tool"
 DEBUG = False                                     # --debug: print every key and click to the terminal
 FIT = (1200, 660)                                 # max frame size on screen (MacBook Air), header bar above it
@@ -97,6 +103,16 @@ def labelling_order(n: int, n_frames: int, hard: list[int], seed: int, step: int
     return first + backups
 
 
+def frame_order(clip: str, labeller: str, n: int, shared: bool) -> list[int]:
+    """Every frame a labelling run may show, in order. eval/prelabel.py calls this too, so the
+    suggestions cover exactly the frames the tool will show."""
+    _w, _h, n_frames, fps, step = clip_info(clip)
+    if shared:
+        return shared_frames(clip, n_frames, fps, step)
+    return labelling_order(n, n_frames, hard_frames(clip, n_frames, fps, step),
+                           seed_for(clip, labeller.strip().lower()), step, int(fps))
+
+
 def shared_frames(clip: str, n_frames: int, fps: float, step: int) -> list[int]:
     """The common frame list: read from eval/labels/shared/<clip>.json, or picked with a fixed seed and saved."""
     path = SHARED_DIR / f"{clip}.json"
@@ -122,10 +138,19 @@ def box_from_points(points: list[list[float]], width: int, height: int) -> list[
 class HandDraft:
     points: list[list[float]] = field(default_factory=list)
     side: str | None = None
+    prefill: str | None = None                    # model that suggested this hand, None = clicked by hand
+    moved: set[int] = field(default_factory=set)  # indices of suggested points the labeller replaced
+    sug_side: str | None = None                   # side the model guessed (None = unsure)
 
     @property
     def complete(self) -> bool:
         return len(self.points) == N_POINTS and self.side in SIDES
+
+    @property
+    def edited(self) -> bool:
+        """A suggested hand the labeller changed: a point moved, or a guessed side flipped.
+        Filling in a side the model left empty is not an edit."""
+        return bool(self.prefill) and (bool(self.moved) or (self.sug_side is not None and self.side != self.sug_side))
 
 
 @dataclass
@@ -133,25 +158,66 @@ class FrameDraft:
     frame: int
     hands: list[HandDraft] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    active: int = -1                              # hand that l/r, c and undo act on
 
-    def click(self, x: float, y: float) -> bool:
-        if not self.hands or len(self.hands[-1].points) == N_POINTS:
+    @staticmethod
+    def with_suggestions(frame: int, suggestions: list[dict], prefill: str) -> "FrameDraft":
+        """Draft pre-filled with model hands ({points: 6 x [x, y], side: left|right|None})."""
+        d = FrameDraft(frame)
+        for sug in suggestions[:MAX_HANDS]:
+            side = sug.get("side")
+            d.hands.append(HandDraft([list(map(float, pt)) for pt in sug["points"]], side, prefill, sug_side=side))
+        return d
+
+    def _nearest_suggested(self, x: float, y: float, radius: float) -> tuple[int, int] | None:
+        best, best_d = None, radius
+        for i, h in enumerate(self.hands):
+            if not h.prefill:
+                continue
+            for k, (px, py) in enumerate(h.points):
+                dist = ((px - x) ** 2 + (py - y) ** 2) ** 0.5
+                if dist <= best_d:
+                    best, best_d = (i, k), dist
+        return best
+
+    def click(self, x: float, y: float, radius: float = 0.0) -> bool:
+        """Continue a hand being clicked; else move the nearest suggested point within `radius`;
+        else start a new hand. False when that would be a third hand."""
+        pt = [round(x, 1), round(y, 1)]
+        manual_open = self.hands and not self.hands[-1].prefill and len(self.hands[-1].points) < N_POINTS
+        if not manual_open:
+            near = self._nearest_suggested(x, y, radius)
+            if near:
+                i, k = near
+                self.hands[i].points[k] = pt
+                self.hands[i].moved.add(k)
+                self.active = i
+                return True
             if len(self.hands) == MAX_HANDS:
                 return False
             self.hands.append(HandDraft())
-        self.hands[-1].points.append([round(x, 1), round(y, 1)])
+        self.hands[-1].points.append(pt)
+        self.active = len(self.hands) - 1
         return True
 
     def set_side(self, side: str) -> None:
         if self.hands:
-            self.hands[-1].side = side
+            self.hands[self.active].side = side
+
+    def clear_hand(self) -> None:
+        """Remove the active hand (e.g. a wrong suggestion)."""
+        if self.hands:
+            self.hands.pop(self.active)
+            self.active = -1
 
     def undo(self) -> None:
-        if not self.hands:
+        """Remove the last clicked point of a hand clicked by hand. Suggested hands: use clear_hand."""
+        if not self.hands or self.hands[-1].prefill:
             return
         self.hands[-1].points.pop()
         if not self.hands[-1].points:
             self.hands.pop()
+        self.active = -1
 
     def toggle_tag(self, tag: str) -> None:
         if tag in self.tags:
@@ -175,10 +241,27 @@ class FrameDraft:
         assert self.problem() is None, self.problem()
         return {"frame": self.frame, "tags": [t for t in TAGS if t in self.tags],
                 "hands": [{"side": h.side, "bbox": box_from_points(h.points, width, height),
-                           "wrist": h.points[0], "tips": h.points[1:]} for h in self.hands]}
+                           "wrist": h.points[0], "tips": h.points[1:],
+                           "prefill": h.prefill, "edited": h.edited} for h in self.hands]}
 
 
 # ---------- label file ----------
+def prelabels_path(clip: str, labeller: str) -> Path:
+    """Suggestions from eval/prelabel.py (git-ignored: model output, not ground truth)."""
+    return config.OUTPUTS / "prelabels" / f"{clip}__{labeller}.json"
+
+
+def load_prelabels(clip: str, labeller: str, shared: bool) -> tuple[str | None, dict[int, list[dict]]]:
+    """(model, frame -> suggested hands). The shared set never gets suggestions: it stays fully manual,
+    so the metrics can check that suggestions did not bias the labels."""
+    path = prelabels_path(clip, labeller)
+    if shared or not path.exists():
+        return None, {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data["model"], {int(f): [{"points": h["points"], "side": h.get("side") if PREFILL_SIDE else None}
+                                    for h in hands] for f, hands in data["frames"].items()}
+
+
 def labels_path(clip: str, labeller: str) -> Path:
     return config.EVAL_LABELS / f"{clip}__{labeller}.json"
 
@@ -187,6 +270,10 @@ def load_labels(path: Path, clip: str, labeller: str) -> dict:
     if path.exists():
         data = json.loads(path.read_text(encoding="utf-8"))
         assert data["clip"] == clip and data["labeller"] == labeller, path
+        for f in data["frames"]:                  # files from before pre-labelling: every hand was clicked
+            for h in f["hands"]:
+                h.setdefault("prefill", None)
+                h.setdefault("edited", False)
         return data
     return {"clip": clip, "labeller": labeller, "frames": []}
 
@@ -208,6 +295,9 @@ def validate_label(label: dict) -> None:
     for h in label["hands"]:
         assert h["side"] in SIDES and len(h["bbox"]) == 4 and len(h["wrist"]) == 2, h
         assert len(h["tips"]) == 5 and all(len(t) == 2 for t in h["tips"]), h
+        assert set(h) == {"side", "bbox", "wrist", "tips", "prefill", "edited"}, sorted(h)
+        assert h["prefill"] in PREFILLS and isinstance(h["edited"], bool), h
+        assert h["prefill"] or not h["edited"], h
 
 
 # ---------- video ----------
@@ -245,7 +335,14 @@ def frame_image(clip: str, frame: int):
 
 
 # ---------- UI ----------
-COLOURS = {"left": (60, 160, 255), "right": (255, 140, 40), None: (200, 200, 200)}   # BGR
+COLOURS = {"left": (60, 160, 255), "right": (255, 140, 40), None: (31, 210, 255)}   # BGR; no side yet = yellow
+
+
+def next_click(d: FrameDraft) -> str:
+    if d.hands and d.hands[-1].prefill:
+        return "check the hollow suggested points; click near one to move it, c clears a wrong hand"
+    k = len(d.hands[-1].points) % N_POINTS if d.hands else 0
+    return POINT_NAMES[k] + (" of a new hand" if k == 0 and d.hands else "")
 
 
 def draw(img, d: FrameDraft, scale: float, header: str, message: str):
@@ -258,21 +355,20 @@ def draw(img, d: FrameDraft, scale: float, header: str, message: str):
         for p in pts[1:]:
             cv2.line(out, pts[0], p, col, 1, cv2.LINE_AA)
         for k, p in enumerate(pts):
-            cv2.circle(out, p, 5 if k == 0 else 3, col, -1, cv2.LINE_AA)
+            hollow = h.prefill and k not in h.moved          # suggested point the labeller has not moved
+            cv2.circle(out, p, 6 if k == 0 else 4, col, 2 if hollow else -1, cv2.LINE_AA)
         if pts:
             cv2.putText(out, (h.side or "?")[0].upper(), (pts[0][0] + 8, pts[0][1] + 16),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2, cv2.LINE_AA)
-    k = len(d.hands[-1].points) % N_POINTS if d.hands else 0
-    need = POINT_NAMES[k] + (" of a new hand" if k == 0 and d.hands else "")
-    lines = [header, f"next click: {need} | tags: {', '.join(d.tags) or '-'}",
-             "ENTER save + next   x skip   u undo   l/r side   t+1..5 tag   q quit", message]
+    lines = [header, f"next click: {next_click(d)} | tags: {', '.join(d.tags) or '-'}",
+             "ENTER save + next   x skip   u undo   c clear hand   l/r side   t+1..5 tag   q quit", message]
     for i, text in enumerate(lines):
         cv2.putText(out, text, (8, 20 + 22 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                     (80, 200, 255) if i == 3 else (235, 235, 235), 1, cv2.LINE_AA)
     return out
 
 
-def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
+def label_frame(img, d: FrameDraft, scale: float, header: str, radius: float = 0.0) -> str:
     """Run the window for one frame. Returns 'next', 'skip' or 'quit'."""
     import cv2
     state = {"msg": "", "tag_mode": False}
@@ -281,7 +377,7 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
         if event == cv2.EVENT_LBUTTONDOWN and DEBUG:
             print(f"click at window ({x}, {y})")
         if event == cv2.EVENT_LBUTTONDOWN and y >= BAR:
-            state["msg"] = "" if d.click(x / scale, (y - BAR) / scale) else f"max {MAX_HANDS} hands"
+            state["msg"] = "" if d.click(x / scale, (y - BAR) / scale, radius) else f"max {MAX_HANDS} hands"
 
     cv2.setMouseCallback(WINDOW, on_mouse)
     while True:
@@ -304,6 +400,8 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
             d.set_side("left" if ch == "l" else "right")
         elif ch == "u":
             d.undo()
+        elif ch == "c":
+            d.clear_hand()
         elif ch == "t":
             state["tag_mode"] = True
         elif ch == "x":
@@ -322,12 +420,11 @@ class Session:
 
     def __init__(self, clip: str, labeller: str, n: int, shared: bool):
         self.clip, self.labeller = clip, labeller.strip().lower()
-        self.width, self.height, n_frames, self.fps, step = clip_info(clip)
-        if shared:
-            self.todo = shared_frames(clip, n_frames, self.fps, step)
-        else:
-            self.todo = labelling_order(n, n_frames, hard_frames(clip, n_frames, self.fps, step),
-                                        seed_for(clip, self.labeller), step, int(self.fps))
+        self.width, self.height, _n_frames, self.fps, _step = clip_info(clip)
+        self.todo = frame_order(clip, self.labeller, n, shared)
+        self.prefill, self.suggestions = load_prelabels(clip, self.labeller, shared)
+        if self.suggestions:
+            print(f"suggestions ({self.prefill}) for {len(self.suggestions)} frames: check every point")
         self.out = labels_path(clip, self.labeller)
         self.data = load_labels(self.out, clip, self.labeller)
         self.skip_file = FRAMES_DIR / clip / f"skipped__{self.labeller}.txt"
@@ -339,6 +436,15 @@ class Session:
         if len(self.done) >= self.goal:
             return None
         return next((f for f in self.todo if f not in self.done and f not in self.skipped), None)
+
+    def draft(self, frame: int) -> FrameDraft:
+        if frame in self.suggestions:
+            return FrameDraft.with_suggestions(frame, self.suggestions[frame], self.prefill)
+        return FrameDraft(frame)
+
+    @property
+    def radius(self) -> float:
+        return PREFILL_RADIUS * self.width
 
     def header(self, frame: int) -> str:
         return f"{self.clip}  frame {frame} ({frame / self.fps:.1f} s)  labelled {len(self.done)}/{self.goal}"
@@ -366,8 +472,8 @@ def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> 
             if img is None:
                 s.skipped.add(frame)
                 continue
-            d = FrameDraft(frame)
-            action = label_frame(img, d, scale, s.header(frame))
+            d = s.draft(frame)
+            action = label_frame(img, d, scale, s.header(frame), s.radius)
             if action == "quit":
                 break
             if action == "skip":
@@ -379,6 +485,19 @@ def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> 
         cv2.waitKey(1)
     print(f"{len(s.done)}/{s.goal} frames labelled → {s.out}")
     return s.out
+
+
+def web_hand(h: dict, suggestions: list[dict], prefill: str | None) -> HandDraft:
+    """Hand sent by the browser page: {points, side, sug}. `sug` is the index of the suggestion it
+    started from; what was moved or re-sided is worked out here against that suggestion."""
+    points = [[round(float(x), 1), round(float(y), 1)] for x, y in h["points"]]
+    i = h.get("sug")
+    if i is None or not prefill or not 0 <= i < len(suggestions):
+        return HandDraft(points, h.get("side"))
+    sug = suggestions[i]
+    moved = {k for k, (a, b) in enumerate(zip(points, sug["points"]))
+             if abs(a[0] - b[0]) > 0.5 or abs(a[1] - b[1]) > 0.5}
+    return HandDraft(points, h.get("side"), prefill, moved, sug.get("side"))
 
 
 # ---------- browser page (--web): same labels, for when the OpenCV window gets no keys or clicks ----------
@@ -394,7 +513,8 @@ def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
         frame = s.next_frame()
         return {"clip": clip, "labeller": s.labeller, "frame": frame, "done": len(s.done), "goal": s.goal,
                 "width": s.width, "height": s.height, "tags": TAGS, "out": str(s.out.relative_to(config.ROOT)),
-                "header": s.header(frame) if frame is not None else f"{clip}: all {s.goal} frames labelled"}
+                "header": s.header(frame) if frame is not None else f"{clip}: all {s.goal} frames labelled",
+                "prefill": s.prefill, "suggestions": s.suggestions.get(frame, []), "radius": s.radius}
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, code: int, body: bytes, kind: str) -> None:
@@ -433,8 +553,7 @@ def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
                 return self._json(state())
             if self.path != "/api/save":
                 return self._json({"error": "not found"}, 404)
-            d = FrameDraft(frame, [HandDraft([[round(float(x), 1), round(float(y), 1)] for x, y in h["points"]],
-                                             h.get("side")) for h in body.get("hands", [])],
+            d = FrameDraft(frame, [web_hand(h, s.suggestions.get(frame, []), s.prefill) for h in body.get("hands", [])],
                            [t for t in body.get("tags", []) if t in TAGS])
             if d.problem():
                 return self._json({"error": d.problem()}, 400)

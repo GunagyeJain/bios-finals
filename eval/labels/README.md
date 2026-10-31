@@ -7,3 +7,4 @@ Hand labels for the metrics (A5). Coordinates only, never images. Format: `docs/
 
 Label: `python -m egovision.eval.label_tool --clip <clip> --labeller <firstname> --n 40`
 (how-to at the top of `src/egovision/eval/label_tool.py`). Window ignores keys or clicks? Add `--web` and open http://localhost:8765. Frame images go to `eval/frames/`, which is git-ignored.
+Faster: `python -m egovision.eval.prelabel --clip <clip> --labeller <firstname>` first (rtmlib suggestions, not for `--shared`).

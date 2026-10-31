@@ -93,7 +93,8 @@ def test_label_json_matches_schema_and_resumes(tmp_path, monkeypatch):
     f = saved["frames"][1]
     assert f["tags"] == ["blur", "glove"]               # fixed order, whatever the key order
     h = f["hands"][0]
-    assert set(h) == {"side", "bbox", "wrist", "tips"}
+    assert set(h) == {"side", "bbox", "wrist", "tips", "prefill", "edited"}
+    assert h["prefill"] is None and h["edited"] is False
     assert h["side"] == "right" and h["wrist"] == [100, 100] and len(h["tips"]) == 5
     again = lt.load_labels(path, "factory_003", "shefali")
     assert again == saved
@@ -113,6 +114,22 @@ def test_save_replaces_same_frame(tmp_path, monkeypatch):
 def test_validate_rejects_bad_label():
     with pytest.raises(AssertionError):
         lt.validate_label({"frame": 1, "tags": ["smoke"], "hands": []})
+
+
+def test_validate_rejects_edited_without_prefill():
+    hand = {"side": "left", "bbox": [0, 0, 1, 1], "wrist": [0, 0], "tips": [[0, 0]] * 5, "prefill": None, "edited": True}
+    with pytest.raises(AssertionError):
+        lt.validate_label({"frame": 1, "tags": [], "hands": [hand]})
+
+
+def test_old_label_files_load_with_prefill_defaults(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "EVAL_LABELS", tmp_path)
+    path = lt.labels_path("c", "x")
+    old = {"side": "left", "bbox": [0, 0, 9, 9], "wrist": [1, 1], "tips": [[2, 2]] * 5}
+    path.write_text(json.dumps({"clip": "c", "labeller": "x", "frames": [{"frame": 4, "tags": [], "hands": [old]}]}))
+    data = lt.load_labels(path, "c", "x")
+    lt.validate_label(data["frames"][0])
+    assert data["frames"][0]["hands"][0]["prefill"] is None
 
 
 def test_shared_frames_same_for_everyone(tmp_path, monkeypatch):
