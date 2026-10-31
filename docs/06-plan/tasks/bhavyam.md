@@ -10,18 +10,19 @@
 - [x] Screens/documents: YOLOE text prompts ("monitor", "screen", "paper document") if fast enough, else skip and note it. _Skipped: ~310 ms per frame on CPU vs ~20 ms for YuNet. Revisit at B-1 if real clips show readable screens._
 - [x] Never blur inside `keep` boxes (hands).
 - [x] `python -m egovision.quality.redact --clip X --out <path>` writes a redacted preview (local only).
-- Done when: test on a synthetic image (face-like detector mocked); manual 20-frame spot check on a real clip. _(tests pass; real-clip spot check waits for `data/egohack-data/` on this laptop)_
+- Done when: test on a synthetic image (face-like detector mocked); manual 20-frame spot check on a real clip. _(done: tests pass, Bhavyam passed the 20-frame sheet by eye)_
 - Known limits, measured on stock photos: faces under ~20 px at 480p are missed; profile faces can be missed; each frame is detected alone, so a weak face can flicker for single frames; a hand box over a face stays sharp, as specified.
 - Scan of all 40 clips (one frame per 2 s, totals only): faces in 1196 of 3600 frames, every clip has some. Of faces scoring ≥ 0.9, 16 of 16 sit inside a detected person; 47 of 68 at 0.8–0.9; about 40 % below 0.8, so many weak ones are false alarms. A person with no face found in 230 of 385 frames (back views, side views or real misses; human check needed). Screens in 3, paper in 3 of 1200 frames. Detection alone on real 1080p frames: 68 ms per frame. Full preview on the clip with most faces: 190 ms per frame, about 17 min for a 3-min clip (read, detect, blur, write).
 
 ⛔ **CHECKPOINT B-1** · Show: redacted preview of a clip with a face or screen; any misses.
 
 ## B3 · Data Health light → `quality.csv` (3 h) · P0
-- [ ] `quality/light.py: run(clip)`: per 1 s segment on 160 px frames: blur (Laplacian variance + optical-flow head speed), brightness (dark share, clipped share), frozen frames, plus from `ClipPaths(clip).hands_input()`: hands visible %, edge cut %, camera angle (mean hand y), mean `agreement` if present.
-- [ ] Rules (trd §5.2): red on hard fail, yellow on 1–2 soft fails or agreement < 0.6, else green. `reasons` = failed checks joined by `;` (`dark;hands_out`). Thresholds in `quality/params.py`.
-- [ ] Columns exactly `schema.QUALITY_COLS`.
+- [x] `quality/light.py: run(clip)`: per 1 s segment on 160 px frames: blur (Laplacian variance + optical-flow head speed), brightness (dark share, clipped share), frozen frames, plus from `ClipPaths(clip).hands_input()`: hands visible %, edge cut %, camera angle (mean hand y), mean `agreement` if present.
+- [x] Rules (trd §5.2): red on hard fail, yellow on 1–2 soft fails or agreement < 0.6, else green. `reasons` = failed checks joined by `;` (`dark;hands_out`). Thresholds in `quality/params.py`.
+- [x] Columns exactly `schema.QUALITY_COLS`.
 - Fallback: real hands not ready → run video-only checks and leave hands columns at -1; rerun later.
 - Done when: tests for the light rules on synthetic numbers; `check` OK on 2 real clips.
+- Measured on all 40 clips (7200 s): blur and speed are the only pixel checks that fire. Dark, clipped and frozen never fire: these factories are well lit and no clip stalls, so those checks stay as guards. Sharpness is measured at 480 px, relative to each clip, because factories differ 2x. `hands_out` drives nearly all reds and comes from raw MediaPipe, so it may mean the detector failed, not that hands left the frame; rerun on final hands.
 
 ⛔ **CHECKPOINT B-2** · Show: the light per second for one demo clip next to the video (a quick matplotlib strip is fine, local only); 3 red seconds and their reasons — do they match what you see?
 
