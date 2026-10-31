@@ -29,7 +29,7 @@ src/egovision/
   io/frames.py     frame iterator, meta.json                  (Gunagye)
   hands/           baseline, tracking, smoothing, gapfill, wilor_fuse   (Abhijay)
   recovery/        rtmlib second opinion, ROI re-detect, low-light       (Bhavyam)
-  quality/         checks, light, redact (blur faces/screens)            (Bhavyam)
+  quality/         checks, light, redact (blur faces)            (Bhavyam)
   contact/         objects (YOLOE), contact rule, grip tags              (Gunagye)
   steps/           gemini captioner, order check                         (Shefali)
   safety/          machine-proximity alerts                              (Bhavyam)
@@ -76,7 +76,7 @@ Per 1 s segment: blur (Laplacian variance + optical-flow head speed), brightness
 - 🟢 otherwise. `reasons` = the failed checks in words. Thresholds in `config.py`, tuned against labels (prove with accuracy per colour).
 
 ### 5.3 Redaction (F10, Bhavyam)
-YuNet faces (+ padding) → Gaussian blur; screens/documents via YOLOE prompts ("monitor", "screen", "paper document") → blur. Applied to every exported or module video. Never blur inside a hand box.
+YuNet faces (+ padding) → Gaussian blur. Screens/documents not blurred for now (YOLOE ~310 ms per frame on CPU; see decisions.md); such clips never go into public material. Applied to every exported or module video. Never blur inside a hand box.
 
 ### 5.4 Objects + contacts (F6, Gunagye)
 - YOLOE every 5th processed frame with a factory vocabulary (edit after watching clips); boxes tracked between runs.

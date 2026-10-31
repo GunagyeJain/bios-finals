@@ -80,5 +80,7 @@ gemini_cache/
 *.npy
 *.npz
 *.pkl
+*.task
+*.tflite
 !assets/diagrams/*.svg
 !assets/diagrams/*.png

@@ -29,4 +29,7 @@ The submission copy in the **organisers'** Drive is theirs; leave it.
 ## 3. Public posts (during and after the event)
 - No clip, frame or screenshot of the footage anywhere public: GitHub, LinkedIn, YouTube, Instagram.
 - Posts about the project use our own diagrams (`assets/diagrams/`) and numbers only.
-- The git hooks block footage, frames, PDFs and data files (`scripts/check-media.sh`); never bypass them.
+- The git hooks block footage, frames, PDFs and data files (`scripts/check-files.sh`); never bypass them.
+
+## 4. Making the repo public (submission)
+Never flip this repo to public: its history holds the private brief. Instead push a fresh single-commit copy of `main` to a new public repo, without `docs/02-problem/problem-statement.pdf`, `docs/02-problem/brief.md` text copied from it, and `eval/labels/` (coordinates from the clips). Owner: Gunagye, before 11:00.

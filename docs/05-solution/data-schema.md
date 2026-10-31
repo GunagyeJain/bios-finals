@@ -92,7 +92,7 @@ exports/<name>/
   meta/episodes.jsonl     {episode_index, clip, t_start, t_end, n_frames, task, light_share, grip_types, steps:[...]}
   meta/tasks.jsonl        {task_index, task}            -- task = "verb object" from steps
   data/chunk-000/episode_000000.parquet
-  videos/chunk-000/egocentric/episode_000000.mp4        -- faces/screens blurred
+  videos/chunk-000/egocentric/episode_000000.mp4        -- faces blurred
   datasheet.md            what, how, numbers, limits, licences, hardware
 ```
 Parquet columns (one row per frame):

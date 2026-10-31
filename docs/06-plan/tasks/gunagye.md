@@ -45,4 +45,4 @@
 - [ ] E1 (by 21:00): label 40 frames.
 
 ## Requests received
-_none yet_
+- Bhavyam: `clip` in requirements → done. Datasheet says "faces blurred" (not screens) → data-schema §4 + trd §5.3 fixed; apply in G4. TC6 fresh clone: allow ~8 min for the 572 MB YOLOE text-encoder download.

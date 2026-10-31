@@ -64,7 +64,10 @@ Resolved during the automatic pull: `git status` → fix the marked files → `g
 
 ## 8. Event footage (data-use agreement: breaking it = disqualification)
 - Footage is used only for this hackathon. Clips live only in `data/egohack-data/` (git-ignored).
-- **Never in git, never public:** videos, frames, screenshots, PDFs, archives, data files. Pre-commit, pre-push and CI block them (`scripts/check-media.sh`). Never bypass with `-f` or `--no-verify`.
+- **Never in git, never public:** videos, frames, screenshots, PDFs, archives, CSV/JSONL of clips, weights, secrets.
+- Git accepts only an allowlist (`scripts/check-files.sh`): code/doc text files ≤ 1 MB, notebooks with outputs cleared, our own diagrams in `assets/diagrams/`. Pre-commit, pre-push and CI enforce it. Never bypass with `-f` or `--no-verify`. Blocked file you really need? Ask Gunagye, don't work around it.
+- `scripts/setup.sh` must have run on your clone; `python scripts/check_env.py` says so.
+- The brief PDF is in the private repo only. The public repo at submission is a fresh copy without it (`docs/06-plan/data-deletion.md` §4).
 - Results of real clips stay in `outputs/`; big ones are shared only through the private team Drive.
 - Sending clips to cloud AI APIs (Gemini) is allowed. Anything showing a face, a screen or company documents never goes into a public post.
 - After the event every copy is deleted: `docs/06-plan/data-deletion.md`.

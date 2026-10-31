@@ -1,7 +1,7 @@
 #!/bin/sh
-# Blocks footage, frames, screenshots and data files before they reach a commit (event data rules).
+# Only allowed file types reach a commit: no footage, frames, PDFs, data files, binaries, secrets.
 root=$(git rev-parse --show-toplevel)
-if ! git diff --cached --name-only --diff-filter=AM | sh "$root/scripts/check-media.sh"; then
+if ! git diff --cached --name-only --no-renames --diff-filter=AMT | sh "$root/scripts/check-files.sh"; then
   echo "Commit blocked. Unstage the files above (git restore --staged <file>); keep them in a git-ignored folder."
   exit 1
 fi

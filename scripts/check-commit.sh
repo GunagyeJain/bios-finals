@@ -1,7 +1,7 @@
 #!/bin/sh
 # Usage: check-commit.sh <sha>
 # Fails if the author/committer email is not a team email, the message has a co-author trailer,
-# or the commit adds footage, frames or data files (scripts/check-media.sh).
+# or the commit adds a file the allowlist in scripts/check-files.sh rejects.
 c="$1"
 root=$(git rev-parse --show-toplevel)
 allow="$root/.github/team-emails.txt"
@@ -19,6 +19,6 @@ if git log -1 --format=%B "$c" | grep -qiE '^co-authored-by:'; then
   echo "commit $(git rev-parse --short "$c"): has a Co-authored-by trailer (single-author commits only)"
   fail=1
 fi
-git diff-tree --no-commit-id --name-only -r --root --diff-filter=AM "$c" \
-  | sh "$root/scripts/check-media.sh" "$c" || fail=1
+git diff-tree --no-commit-id --name-only -r --root --no-renames --diff-filter=AMT "$c" \
+  | sh "$root/scripts/check-files.sh" "$c" || fail=1
 exit $fail
