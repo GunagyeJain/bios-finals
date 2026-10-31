@@ -26,7 +26,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Gunagye | G1 foundation done (TC0) → G2 contacts |
 | Abhijay | A1 MediaPipe baseline, mirror check |
 | Bhavyam | B4 redaction, then B1 rtmlib |
-| Shefali | S1 label tool |
+| Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
 ## Key dates

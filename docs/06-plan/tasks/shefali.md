@@ -6,9 +6,9 @@
 **Setup extra:** Gemini key from Google AI Studio → `export GEMINI_API_KEY=...` in your shell (never in a file in the repo).
 
 ## S1 · Label tool (1.5 h) · P0 · everyone needs it by 20:00
-- [ ] `python -m egovision.eval.label_tool --clip X --labeller <name> --n 40`: picks frames (60 % hard: from baseline flags/no-hands/dark if present, else random; 40 % random), saves them to `eval/frames/` (git-ignored), OpenCV window: click wrist then 5 tips per hand, key `l`/`r` for side, `n` next, `s` skip, `t` add tag (blur/glove/dark/overlap/reentry), `u` undo. Box = min/max of clicked points + 15 %.
-- [ ] `--shared` mode: the same 30 frames (fixed seed) for Abhijay + Bhavyam.
-- [ ] Writes `eval/labels/<clip>__<labeller>.json` exactly as data-schema §2. Coordinates only. These files **are committed**.
+- [x] `python -m egovision.eval.label_tool --clip X --labeller <name> --n 40`: picks frames (60 % hard: from baseline flags/no-hands/dark if present, else random; 40 % random), saves them to `eval/frames/` (git-ignored), OpenCV window: click wrist then 5 tips per hand, key `l`/`r` for side, `n` next, `s` skip, `t` add tag (blur/glove/dark/overlap/reentry), `u` undo. Box = min/max of clicked points + 15 %.
+- [x] `--shared` mode: the same 30 frames (fixed seed) for Abhijay + Bhavyam.
+- [x] Writes `eval/labels/<clip>__<labeller>.json` exactly as data-schema §2. Coordinates only. These files **are committed**.
 - [ ] One-paragraph how-to at the top of the file; post the command in chat.
 - Done when: test for the JSON writer; you labelled 5 frames end to end on a real clip.
 
