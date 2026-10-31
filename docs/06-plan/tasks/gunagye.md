@@ -21,9 +21,9 @@
 - Done when: test builds an index from the fixture in a temp dir.
 
 ## G5a · App on fixtures (3 h) · P0
-- [ ] `app/components.py`: `kpi_row`, `light_bar`, `event_timeline` (one Plotly figure, rows light/left/right/steps/alerts, click → `st.session_state.t`), `video_at(path, t)`.
-- [ ] `Home.py` Library + `1_Clip_review.py` per ui-design §2–3 incl. Baseline/Ours toggle, Steps/Safety/Flagged tabs, "Mark as reference" (calls `steps.order.save_reference`; button hidden until S3 lands).
-- [ ] Empty states per ui-design §7.
+- [x] `app/components.py`: `kpi_row`, `light_bar`, `event_timeline` (one Plotly figure, rows light/left/right/steps/alerts, click → `st.session_state.t`), `video_at(path, t)`.
+- [x] `Home.py` Library + `1_Clip_review.py` per ui-design §2–3 incl. Baseline/Ours toggle, Steps/Safety/Flagged tabs, "Mark as reference" (calls `steps.order.save_reference`; button hidden until S3 lands).
+- [x] Empty states per ui-design §7.
 
 ⛔ **CHECKPOINT G-2** · Show: `streamlit run app/Home.py` on fixtures: library → review → click a red second → video jumps.
 
