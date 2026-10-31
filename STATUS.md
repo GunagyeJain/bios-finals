@@ -26,7 +26,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Gunagye | G2–G4 done, G6 render done; integration 1 on MTL-SKL00089-005 (hands A2 + contacts + render) OK, waiting for B3 quality / S2 steps |
 | Abhijay | A2-A3 done: `hands.jsonl` on all 40 clips (swaps/min 41.2 to 2.7) → waiting on checkpoint A-2, then A4 |
 | Bhavyam | B4 face redaction scanned on all 40 clips; human 20-frame spot check in progress → checkpoint B-1 |
-| Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |
+| Shefali | S1 label tool done (6 real frames labelled, `--web` browser mode) → checkpoint S-1, then S2 |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
 ## Key dates
