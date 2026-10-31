@@ -12,7 +12,8 @@ from egovision.index import query
 from egovision.schema import ClipPaths
 
 SHARES = [("detection_recall", "Hands found"), ("detection_precision", "Detections that are hands"),
-          ("lr_accuracy", "Left/right correct"), ("pck_0.2", "Keypoints within 20 %")]
+          ("lr_accuracy", "Left/right correct"), ("pck_0.2_with_misses", "Keypoints within 20 %"),
+          ("pck_0.2", "… on found hands only")]
 
 
 @st.cache_data(ttl=30)
@@ -99,14 +100,15 @@ def kpi(key: str, label: str, share: bool = True, unit: str = "", lower_better: 
 
 
 kpi_strip([kpi("detection_recall", "Hands found"), kpi("lr_accuracy", "Left/right correct"),
-           kpi("pck_0.2", "Keypoints within 20 %"),
+           kpi("pck_0.2_with_misses", "Keypoints within 20 %"),
            kpi("swaps_per_min", "Side swaps", False, " /min", True), kpi("jitter_px", "Jitter", False, " px", True)])
 
 left, right = st.columns([3, 2], gap="medium")
 with left, st.container(border=True):
     st.html('<h3 style="font-size:16px;font-weight:600;margin:0">Baseline vs ours</h3>'
             '<p style="color:#8a8c92;font-size:12px;margin:2px 0 0">MediaPipe alone, then with tracking, side '
-            'voting, gap fill and smoothing. Same labelled frames.</p>')
+            'voting, gap fill and smoothing. Same labelled frames. Keypoints count a missed hand as wrong; the '
+            'last row scores found hands only, so finding hard hands lowers it.</p>')
     st.plotly_chart(bars([(lab, weighted(ms, "baseline", k), weighted(ms, "ours", k)) for k, lab in SHARES]),
                     width="stretch", config={"displayModeBar": False})
 with right, st.container(border=True):
