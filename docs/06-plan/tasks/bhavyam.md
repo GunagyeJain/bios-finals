@@ -12,6 +12,7 @@
 - [x] `python -m egovision.quality.redact --clip X --out <path>` writes a redacted preview (local only).
 - Done when: test on a synthetic image (face-like detector mocked); manual 20-frame spot check on a real clip. _(tests pass; real-clip spot check waits for `data/egohack-data/` on this laptop)_
 - Known limits, measured on stock photos: faces under ~20 px at 480p are missed; profile faces can be missed; each frame is detected alone, so a weak face can flicker for single frames; a hand box over a face stays sharp, as specified.
+- Scan of all 40 clips (one frame per 2 s, totals only): faces in 1196 of 3600 frames, every clip has some. Of faces scoring ≥ 0.9, 16 of 16 sit inside a detected person; 47 of 68 at 0.8–0.9; about 40 % below 0.8, so many weak ones are false alarms. A person with no face found in 230 of 385 frames (back views, side views or real misses; human check needed). Screens in 3, paper in 3 of 1200 frames. Detection on real 1080p frames: 68 ms per frame, one job.
 
 ⛔ **CHECKPOINT B-1** · Show: redacted preview of a clip with a face or screen; any misses.
 
@@ -49,4 +50,5 @@
 
 ## Requests (to shared-file owners)
 - To Gunagye (G4 datasheet): say "faces blurred", not "faces/screens blurred" (`data-schema.md` §4, `trd.md` §5.3), unless B-1 brings screens back.
+- To Gunagye (speed budget): my copy of `clips_480p/` is 1920×1080, not 480p (40 clips, 30 fps, 180 s each). Check whether yours is too; trd §6 assumes 480p.
 - To Gunagye (requirements, TC6): YOLOE needs the `clip` package, which ultralytics installs itself at run time, plus a 572 MB `mobileclip_blt.ts` download (about 8 min here). Add `clip` to `requirements.txt` and have the fresh-clone test allow for the download.
