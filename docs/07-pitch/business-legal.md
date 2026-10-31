@@ -24,7 +24,7 @@ Next technical steps: quality light while recording, a hand model for gloves, sc
 
 ## Slide 5: legal and consent limits (one block next to "what failed")
 - We grade footage, never workers. No per-worker score exists anywhere in the system.
-- Faces are blurred in exports, but the blur is not perfect: very small faces and some side views can be missed. Screens and documents are not blurred. A person must review anything before it leaves the building.
+- Faces are blurred in exports, but the blur is not perfect: faces the detector is unsure of stay sharp, and some blur lands on things that are not faces. We tuned it by human video review, and we have no measured miss rate. Screens and documents are not blurred. A person must review anything before it leaves the building.
 - All event footage is deleted when judging ends.
 
 ## Speaker notes (30 seconds)
