@@ -32,3 +32,5 @@ PINCH_MAX = 0.35          # thumb tip to index tip: a pinch closes the gap
 OTHERS_OPEN_MIN = 0.8     # middle/ring/little tips to palm centre: not wrapped round the object
 WRAP_MAX = 0.8            # rule.closure() of a power grip (fist ~0.3, open hand ~1.0+)
 MIN_PRESENT = 0.5         # share of the interval's frames that need keypoints, else "unsure"
+FIXED_WRAP_MAX = 0.5      # closed hand on a "fixed" box = holding a part YOLOE missed → 5f, not generic
+OTHERS_IN_BOX_WRAP = 2    # middle/ring/little tips inside the object box: wrapped round it, not a pinch

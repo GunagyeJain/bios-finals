@@ -140,18 +140,28 @@ def _grip_measures(kp2d: list[list[float]]) -> tuple[float, float, float] | None
     return float(pinch), float(others), closure(kp2d)
 
 
-def grip(frames: list[list[list[float]] | None], state: str) -> str:
-    """Grip of one contact interval: 'generic' on a fixed object, '2f' for a pinch with the other fingers
-    free, '5f' for a wrap, 'unsure' when keypoints are missing or the hand fits neither.
+def others_in_box(kp2d: list[list[float]], bbox: list[float]) -> int:
+    """Middle, ring and little fingertips inside the padded object box (thumb and index left out)."""
+    x1, y1, x2, y2 = pad_box(bbox, P.PAD)
+    return sum(x1 <= kp2d[i][0] <= x2 and y1 <= kp2d[i][1] <= y2 for i in (12, 16, 20))
+
+
+def grip(frames: list[list[list[float]] | None], state: str, others_in: list[int | None] | None = None) -> str:
+    """Grip of one contact interval from the median over its frames:
+    '2f' a pinch (thumb meets index, other fingers free and outside the object), '5f' a wrap,
+    'generic' an open hand on a fixed object (press, push), 'unsure' when keypoints are missing or the hand
+    fits neither. A closed hand on a fixed box is 5f: it holds a part the detector missed.
     A 2-finger robot can copy 2f and generic; a 5-finger robot also 5f."""
-    if state == "fixed":
-        return "generic"
     measures = [m for m in (_grip_measures(kp) for kp in frames if kp is not None) if m is not None]
     if not frames or len(measures) < P.MIN_PRESENT * len(frames):
-        return "unsure"
+        return "generic" if state == "fixed" else "unsure"
     pinch, others, wrap = np.median(np.asarray(measures), axis=0)
-    if pinch <= P.PINCH_MAX and others >= P.OTHERS_OPEN_MIN:
+    if state == "fixed":
+        return "5f" if wrap <= P.FIXED_WRAP_MAX else "generic"
+    inside = [n for n in (others_in or []) if n is not None]
+    wrapped_round = bool(inside) and np.median(inside) >= P.OTHERS_IN_BOX_WRAP
+    if pinch <= P.PINCH_MAX and others >= P.OTHERS_OPEN_MIN and not wrapped_round:
         return "2f"
-    if wrap <= P.WRAP_MAX:
+    if wrap <= P.WRAP_MAX or wrapped_round:
         return "5f"
     return "unsure"

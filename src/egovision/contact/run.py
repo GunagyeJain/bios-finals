@@ -80,8 +80,9 @@ def run(clip: str) -> None:
         prev_gray = gray
         by_side = _best_by_side(frame_hands)
         for side in SIDES:
-            keypoints[side].append((t, by_side[side].kp2d if side in by_side else None))
             o, n = rule.pick_object(by_side[side].kp2d, objs) if side in by_side else (None, 0)
+            kp = by_side[side].kp2d if side in by_side else None
+            keypoints[side].append((t, kp, rule.others_in_box(kp, o["bbox"]) if o else None))
             if o is not None:
                 seen.setdefault((side, o["name"], t), o)
             # keyed by name: ids change when head motion breaks the IoU match, the object doesn't
@@ -91,6 +92,7 @@ def run(clip: str) -> None:
     rows = [{"clip": clip, "t_start": round(a, 3), "t_end": round(b, 3), "hand": side,
              "state": seen[side, name, a]["kind"], "object_name": name,
              "object_id": seen[side, name, a]["id"], "confidence": round(conf, 3),
-             "grip": rule.grip([kp for tk, kp in keypoints[side] if a <= tk <= b], seen[side, name, a]["kind"])}
+             "grip": rule.grip([kp for tk, kp, _ in keypoints[side] if a <= tk <= b], seen[side, name, a]["kind"],
+                               [n for tk, _, n in keypoints[side] if a <= tk <= b])}
             for side in SIDES for a, b, name, conf in rule.hysteresis(samples[side])]
     write_csv(p.contacts, CONTACT_COLS, sorted(rows, key=lambda r: (r["t_start"], r["hand"])))

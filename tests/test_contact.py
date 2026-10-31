@@ -99,8 +99,17 @@ def test_grip_fist_is_5f():
     assert rule.grip([_hand(FIST_TIPS)] * 6, "portable") == "5f"
 
 
-def test_grip_fixed_object_is_generic():
-    assert rule.grip([_hand(FIST_TIPS)] * 6, "fixed") == "generic"
+def test_grip_open_hand_on_fixed_object_is_generic():
+    assert rule.grip([_hand(OPEN_TIPS)] * 6, "fixed") == "generic"
+
+
+def test_grip_closed_hand_on_fixed_object_holds_a_missed_part():
+    assert rule.grip([_hand(FIST_TIPS)] * 6, "fixed") == "5f"
+
+
+def test_pinch_shape_round_a_thin_part_is_a_wrap():
+    assert rule.grip([_hand(PINCH_TIPS)] * 6, "portable", others_in=[3] * 6) == "5f"
+    assert rule.grip([_hand(PINCH_TIPS)] * 6, "portable", others_in=[0] * 6) == "2f"
 
 
 def test_grip_open_hand_or_missing_keypoints_is_unsure():
