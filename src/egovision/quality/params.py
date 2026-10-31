@@ -4,11 +4,16 @@ from .. import config
 YUNET_MODEL = config.ROOT / "models" / "face_detection_yunet_2023mar.onnx"
 YUNET_URL = ("https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/"
              "face_detection_yunet_2023mar.onnx")
-FACE_SCORE = 0.6       # below the detector's usual 0.9: a false blur costs less than a leaked face
+FACE_SCORE = 0.3       # detector floor: real faces score under 0.6 in about half their frames
+FACE_CONFIRM = 0.8     # a followed face blurs once one detection reaches this; one-frame false ones rarely do
+FACE_HOLD = 8          # calls a face stays blurred with no detection
+FACE_MATCH_IOU = 0.15  # head-cam faces jump between frames
+DETECT_WIDTH = 1920    # at 960 px the detector kept half as many faces as at 1920
 FACE_NMS = 0.3
 FACE_TOP_K = 500
 FACE_PAD = 0.2         # share of the face size added on each side
 BLUR_MIN_KERNEL = 15   # px
+KEEP_MAX_FACE = 0.5    # a hand box stays sharp unless it covers more than this share of a face
 
 # Data Health light (B3). Pixel checks run on small frames, so they read the same on any clip size.
 SMALL_WIDTH = 160

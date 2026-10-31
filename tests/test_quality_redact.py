@@ -9,6 +9,69 @@ def noise(h=120, w=160):
     return np.random.default_rng(0).integers(0, 255, (h, w, 3), np.uint8)
 
 
+class ScriptedYuNet:
+    """Plays back one list of (x, y, w, h, score) per call, given in pixels of a 160 x 120 frame."""
+
+    def __init__(self, calls):
+        self.calls, self.sizes = list(calls), []
+
+    def setInputSize(self, size):
+        self.sizes.append(size)
+
+    def detect(self, img):
+        faces = self.calls.pop(0)
+        s = img.shape[1] / 160
+        if not faces:
+            return 1, None
+        return 1, np.array([[*(v * s for v in f[:4]), *[0] * 10, f[4]] for f in faces], np.float32)
+
+
+@pytest.fixture(autouse=True)
+def no_followed_faces():
+    redact._tracks.clear()
+
+
+def scripted(monkeypatch, calls):
+    fake = ScriptedYuNet(calls)
+    monkeypatch.setattr(redact, "_yunet", lambda: fake)
+    return fake
+
+
+FACE = (50, 40, 40, 40)
+
+
+def test_one_flash_never_blurs_however_often_it_appears_elsewhere(monkeypatch):
+    weak = redact.params.FACE_CONFIRM - 0.1
+    scripted(monkeypatch, [[(10, 10, 20, 20, weak)], [(100, 70, 20, 20, weak)], [(10, 70, 20, 20, weak)]])
+    assert [redact.face_boxes(noise()) for _ in range(3)] == [[], [], []]
+
+
+def test_a_proven_face_stays_blurred_through_weak_frames_and_gaps(monkeypatch):
+    strong = redact.params.FACE_CONFIRM + 0.1
+    gap = redact.params.FACE_HOLD
+    scripted(monkeypatch, [[(*FACE, strong)], [(*FACE, 0.31)], *[[] for _ in range(gap)], [(*FACE, 0.31)]])
+    assert all(redact.face_boxes(noise()) for _ in range(gap + 3))
+
+
+def test_a_lost_face_is_dropped_after_the_hold(monkeypatch):
+    scripted(monkeypatch, [[(*FACE, 0.95)], *[[] for _ in range(redact.params.FACE_HOLD + 1)]])
+    seen = [redact.face_boxes(noise()) for _ in range(redact.params.FACE_HOLD + 2)]
+    assert seen[-2] and not seen[-1]
+
+
+def test_a_new_frame_size_forgets_old_faces(monkeypatch):
+    scripted(monkeypatch, [[(*FACE, 0.95)], []])
+    assert redact.face_boxes(noise())
+    assert redact.face_boxes(noise(240, 320)) == []
+
+
+def test_small_frames_are_enlarged_for_detection_and_boxes_come_back_in_their_pixels(monkeypatch):
+    fake = scripted(monkeypatch, [[(*FACE, 0.95)]])
+    box = redact.face_boxes(noise())[0]
+    assert fake.sizes == [(redact.params.DETECT_WIDTH, redact.params.DETECT_WIDTH * 3 // 4)]
+    assert box == pytest.approx([42, 32, 98, 88])
+
+
 def test_blur_only_touches_the_box_and_leaves_input_alone():
     img = noise()
     before = img.copy()
@@ -40,19 +103,17 @@ def test_no_boxes_returns_the_frame_unchanged():
 
 
 def test_redact_frame_pads_detector_output_and_keeps_hands(monkeypatch):
-    class FakeYuNet:
-        def setInputSize(self, size):
-            assert size == (160, 120)
-
-        def detect(self, img):
-            return 1, np.array([[50, 40, 40, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.9]], np.float32)
-
-    monkeypatch.setattr(redact, "_yunet", lambda: FakeYuNet())
+    scripted(monkeypatch, [[(*FACE, 0.9)]])
     img = noise()
-    assert redact.face_boxes(img)[0] == pytest.approx([42, 32, 98, 88])
     out = redact.redact_frame(img, keep=[[42, 32, 60, 88]])
     assert np.array_equal(out[32:88, 42:60], img[32:88, 42:60])
     assert out[32:88, 61:98].std() < img[32:88, 61:98].std() / 4
+
+
+def test_a_hand_box_over_most_of_a_face_does_not_bring_it_back():
+    img = noise()
+    out = redact.blur_boxes(img, [[40, 30, 100, 90]], keep=[[30, 20, 90, 100]])
+    assert out[30:90, 40:100].std() < img[30:90, 40:100].std() / 4
 
 
 def test_no_face_leaves_frame_unchanged(monkeypatch):
