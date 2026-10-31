@@ -2,6 +2,7 @@
 # Add a dependency: tell the team, add it here + to the README tools table in the same commit.
 numpy>=1.26
 opencv-python>=4.9
+imageio-ffmpeg>=0.5     # bundled ffmpeg: H.264 MP4s the browser can play (app, render, export)
 pandas>=2.1
 pyarrow>=15
 tqdm>=4.66

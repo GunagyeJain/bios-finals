@@ -6,11 +6,13 @@ from __future__ import annotations
 import json
 import math
 import shutil
+from dataclasses import replace
 
 import cv2
 import numpy as np
 
 from . import config
+from .io.video import H264Writer
 from .schema import (ALERT_COLS, CONTACT_COLS, QUALITY_COLS, STEP_COLS, ClipPaths, FrameHands,
                      Hand, write_csv, write_hands, write_jsonl, write_meta)
 
@@ -41,8 +43,11 @@ def _hands_at(t: float) -> list[Hand]:
 
 
 def _video(path, seconds: int) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    vw = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), FPS, (W, H))
+    with H264Writer(path, FPS, (W, H)) as vw:
+        _draw(vw, seconds)
+
+
+def _draw(vw: H264Writer, seconds: int) -> None:
     for i in range(seconds * FPS):
         t = i / FPS
         img = np.full((H, W, 3), 90, np.uint8)
@@ -56,7 +61,6 @@ def _video(path, seconds: int) -> None:
         if 6.0 <= t < 7.0:                                # dark second → red light
             img = (img * 0.15).astype(np.uint8)
         vw.write(img)
-    vw.release()
 
 
 def make(clip: str, seconds: int = SECONDS) -> ClipPaths:
@@ -68,8 +72,8 @@ def make(clip: str, seconds: int = SECONDS) -> ClipPaths:
                         "is_demo": False, "pipeline_version": config.PIPELINE_VERSION})
     all_frames = [FrameHands(i, i / FPS, _hands_at(i / FPS)) for i in range(n)]
     base = [f for f in all_frames if f.frame % config.FRAME_STEP == 0]
-    for f in base[::7]:                                   # baseline misses some hands
-        f.hands = f.hands[:1]
+    base = [replace(f, hands=f.hands[:1]) if k % 7 == 0 else f    # baseline misses some hands
+            for k, f in enumerate(base)]
     write_hands(p.hands_baseline, base)
     write_hands(p.hands, all_frames)
     lights = ["green", "green", "yellow", "green", "green", "green", "red", "green", "red", "yellow", "green", "green"]
