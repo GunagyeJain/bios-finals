@@ -72,6 +72,11 @@ def test_still_machines_and_portable_objects_never_alert():
     assert not safety.find_alerts("c", fr, object_rows(2, kind="portable"))
 
 
+@pytest.mark.parametrize("name", P.NEVER_MOVES)
+def test_furniture_never_alerts_even_when_flagged_moving(name):
+    assert not safety.find_alerts("c", frames(2, lambda t: [hand(480)]), object_rows(2, name=name))
+
+
 def test_a_short_gap_joins_and_a_long_gap_splits():
     gap = P.JOIN_GAP_S
     short = frames(4, lambda t: [] if 1.5 <= t < 1.5 + gap / 2 else [hand(480)])
