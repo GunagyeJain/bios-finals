@@ -14,3 +14,4 @@ Append-only. Format: `YYYY-MM-DD · who · decision · why`
 - 2026-10-31 · Gunagye · Problem statement PDF stays in `docs/02-problem/` · team reference
 - 2026-10-31 · Gunagye · Build protocol: per-member task files with ⛔ checkpoints, team checkpoints TC0–TC6, synthetic fixtures + plug-in stubs so nobody waits; alerts split into `alerts_steps.csv` / `alerts_safety.csv` (one writer per file) · parallel work without blocking
 - 2026-10-31 · Gunagye · Footage guard: pre-commit/pre-push/CI block video, images, PDFs, archives, data files (own diagrams only in `assets/diagrams/`); end-of-event deletion checklist with owners · organisers' data-use agreement, breaking it = disqualification
+- 2026-10-31 · Bhavyam · Redaction blurs faces only; screens/documents skipped for now · YOLOE takes ~310 ms per frame on CPU against ~20 ms for YuNet, about 28 min per clip; revisit at B-1 if real clips show readable screens

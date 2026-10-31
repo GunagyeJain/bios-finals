@@ -25,7 +25,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 |---|---|
 | Gunagye | G2 contacts built + tested (fixture OK); real-clip check pending clips → checkpoint G-1 |
 | Abhijay | A1 baseline code pushed; mirror check and real-clip run need `clips_480p` |
-| Bhavyam | B4 redaction, then B1 rtmlib |
+| Bhavyam | B4 face redaction pushed (fixture + stock photo OK); real-clip spot check pending clips → checkpoint B-1 |
 | Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 
