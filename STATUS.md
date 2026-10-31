@@ -25,7 +25,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 |---|---|
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
 | Abhijay | A2-A3 done: `hands.jsonl` on all 40 clips (swaps/min 41.2 to 2.7) → waiting on checkpoint A-2, then A4 |
-| Bhavyam | B4 done. B3 light built, tuned on all 40 clips, run on 4 → checkpoint B-2 |
+| Bhavyam | B3 done; quality on 40 clips running in background; next labels → B5 |
 | Shefali | S2 Gemini steps built + tested (mocked); real-clip run needs GEMINI_API_KEY |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
 

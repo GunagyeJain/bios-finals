@@ -25,8 +25,10 @@
 - Measured on all 40 clips (7200 s): blur and speed are the only pixel checks that fire. Dark, clipped and frozen never fire: these factories are well lit and no clip stalls, so those checks stay as guards. Sharpness is measured at 480 px, relative to each clip, because factories differ 2x. `hands_out` drives nearly all reds and comes from raw MediaPipe, so it may mean the detector failed, not that hands left the frame; rerun on final hands.
 
 ⛔ **CHECKPOINT B-2** · Show: the light per second for one demo clip next to the video (a quick matplotlib strip is fine, local only); 3 red seconds and their reasons — do they match what you see?
+_B-2 passed: Bhavyam checked the red seconds on the sheet; hands really are out of sight._
 
-## B1 + B2 · Recovery plug-ins (4.5 h) · P0
+## B1 + B2 · Recovery plug-ins · CUT (sprint-2), api.py back to no-op defaults
+_Built and measured before the cut, then reverted: commit 9129397, undone by the revert commit after it. Hidden-hand test on 4 clips: 137 of 160 found (108 close to truth), 15 of 125 false in frames where hands are gone, 33 ms per call. Scale 4x crop beat the 2x recipe (64 % vs 28 %); CLAHE gained nothing. `git revert` of the revert restores it._
 - [ ] `agreement(img, hand)`: rtmlib `Hand` (ONNX, CPU) on the hand box ± 20 %; mean wrist+tip distance / box size → 0..1.
 - [ ] `recover_missing(img, frame, t, side, last)`: (1) ROI crop around `last.bbox` × 2, upscale ×2, CLAHE if dark, re-run MediaPipe (IMAGE mode) → `source="roi"`; (2) else rtmlib on the ROI → `source="rtmlib"`; map back to full-frame pixels; return `None` if nothing.
 - [ ] Keep CLAHE only if it raises recall on dark labelled frames (A/B with Abhijay's metrics).

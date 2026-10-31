@@ -110,3 +110,22 @@ def test_segment_is_frozen_only_if_every_sample_is_still():
     assert not light.segment([still, {**still, "diff": 2.0}], none)["frozen"]
     first_only = {k: v for k, v in still.items() if k not in ("speed", "diff")}
     assert not light.segment([first_only], none)["frozen"]
+
+
+def test_run_reads_final_hands_over_the_baseline(tmp_path, monkeypatch):
+    from egovision import config
+    from egovision.schema import QUALITY_COLS, ClipPaths, read_csv, write_hands
+    monkeypatch.setattr(config, "OUTPUTS", tmp_path / "outputs")
+    monkeypatch.setattr(config, "FIXTURE_DIR", tmp_path / "videos")
+    p = ClipPaths("fixture_009").mkdir()
+    p.video.parent.mkdir(parents=True)
+    vw = cv2.VideoWriter(str(p.video), cv2.VideoWriter_fourcc(*"mp4v"), 10, (160, 90))
+    for i in range(10):
+        vw.write(cv2.cvtColor(texture(i), cv2.COLOR_GRAY2BGR))
+    vw.release()
+    write_hands(p.hands_baseline, [FrameHands(i, i / 10, []) for i in range(10)])
+    light.run("fixture_009")
+    assert float(read_csv(p.quality, QUALITY_COLS)[0]["hands_visible"]) == 0.0
+    write_hands(p.hands, [FrameHands(i, i / 10, [hand(20, 60, 20, 60)]) for i in range(10)])
+    light.run("fixture_009")
+    assert float(read_csv(p.quality, QUALITY_COLS)[0]["hands_visible"]) == 1.0
