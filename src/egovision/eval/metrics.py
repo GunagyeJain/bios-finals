@@ -1,14 +1,36 @@
-"""A5 · owner: Abhijay. `python -m egovision.eval.metrics --clip X` → outputs/<clip>/metrics.json
-Compares hands_baseline.jsonl and hands.jsonl against eval/labels/; accuracy per light colour from quality.csv."""
+"""A5 · owner: Abhijay. `python -m egovision.eval.metrics --clip X` (or `--all`) → outputs/<clip>/metrics.json
+Compares hands_baseline.jsonl and hands.jsonl against eval/labels/; accuracy per light colour from quality.csv.
+Top-level numbers are the final hands (`baseline_*` for the baseline), so the index and the app can read them;
+`baseline` / `hands` hold the full breakdown; `history` keeps earlier runs for before/after.
+Pooled numbers over all labelled clips: outputs/metrics_summary.json.
+"""
 from __future__ import annotations
 
+import argparse
+import json
 import math
+import platform
+import time
+from collections import defaultdict
+from datetime import datetime
+from itertools import islice
+from pathlib import Path
 
-from egovision.schema import FrameHands, Hand
+import numpy as np
+from scipy.optimize import linear_sum_assignment
+
+from egovision import config
+from egovision.schema import QUALITY_COLS, SIDES, TIPS, ClipPaths, FrameHands, Hand, read_csv, read_hands, read_meta
 
 LINK_SIZES = 1.0     # a hand continues a chain if its wrist moved less than this many hand sizes
 STILL_WINDOW = 5     # chain steps either side when deciding a hand is still
 STILL_SIZES = 0.25   # net wrist motion across the window, in hand sizes
+KP = (0, *TIPS)      # wrist + 5 tips, the labelled points
+PCK_THRESHOLD = 0.2  # share of the box size
+MATCH_MAX = 0.5      # a prediction counts as this hand if its mean point error is under this share of the box size
+FULL_LABELS = 160    # fewer labelled frames than this across the team → "partial": true
+FPS_FRAMES = 300
+TAGS = ("blur", "glove", "dark", "overlap", "reentry")
 
 
 def _size(h: Hand) -> float:
@@ -74,3 +96,311 @@ def jitter(frames: list[FrameHands], step: int) -> float:
             if net < STILL_SIZES * _size(c[i]):
                 moves.append(math.dist(c[i - 1].kp2d[0], c[i].kp2d[0]))
     return sum(moves) / len(moves) if moves else 0.0
+
+
+# ---------- labels against predictions ----------
+def label_points(h: dict) -> np.ndarray:
+    return np.array([h["wrist"], *h["tips"]], dtype=float)
+
+
+def label_size(h: dict) -> float:
+    b = h["bbox"]
+    return max(b[2] - b[0], b[3] - b[1], 1.0)
+
+
+def match(label_hands: list[dict], pred: list[Hand]) -> list[tuple[int, int, np.ndarray]]:
+    """Pairs labels with predictions by point error alone, not side, so a right hand called left is a
+    side error and not a miss. Returns (label index, pred index, per-point error / box size)."""
+    if not label_hands or not pred:
+        return []
+    errs = [[np.linalg.norm(label_points(lh) - np.asarray(p.kp2d, dtype=float)[list(KP)], axis=1) / label_size(lh)
+             for p in pred] for lh in label_hands]
+    cost = np.array([[e.mean() for e in row] for row in errs])
+    return [(int(i), int(j), errs[i][j]) for i, j in zip(*linear_sum_assignment(cost)) if cost[i, j] <= MATCH_MAX]
+
+
+class Tally:
+    """Counts for one group of labelled hands; `result` turns them into the reported rates."""
+
+    def __init__(self):
+        self.labels = self.preds = self.matched = self.side_ok = self.pts = self.pts_ok = 0
+        self.frames = 0
+        self.wrist_err: list[float] = []
+
+    def add(self, label_hands: list[dict], pred: list[Hand], count_preds: bool = True) -> None:
+        self.frames += 1
+        self.labels += len(label_hands)
+        if count_preds:
+            self.preds += len(pred)
+        for i, j, err in match(label_hands, pred):
+            self.matched += 1
+            self.side_ok += label_hands[i]["side"] == pred[j].side
+            self.pts += len(err)
+            self.pts_ok += int((err <= PCK_THRESHOLD).sum())
+            self.wrist_err.append(float(err[0]))
+
+    def result(self) -> dict:
+        def rate(a, b):
+            return round(a / b, 4) if b else None
+        return {"frames": self.frames, "labels": self.labels,
+                "detection_recall": rate(self.matched, self.labels),
+                "detection_precision": rate(self.matched, self.preds),
+                "lr_accuracy": rate(self.side_ok, self.matched),
+                "pck_0.2": rate(self.pts_ok, self.pts),
+                "pck_0.2_with_misses": rate(self.pts_ok, self.labels * len(KP)),
+                "wrist_error_box": round(float(np.median(self.wrist_err)), 4) if self.wrist_err else None}
+
+
+def load_labels(clip: str) -> dict[str, dict[int, dict]]:
+    """labeller → frame → label, for every label file of this clip."""
+    out: dict[str, dict[int, dict]] = {}
+    for path in sorted(config.EVAL_LABELS.glob(f"{clip}__*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out[data["labeller"]] = {f["frame"]: f for f in data["frames"]}
+    return out
+
+
+def merged_labels(by_labeller: dict[str, dict[int, dict]]) -> dict[int, dict]:
+    """One label per frame. A frame with several labellers uses the first name; agreement is reported apart."""
+    out: dict[int, dict] = {}
+    for name in sorted(by_labeller):
+        for frame, label in by_labeller[name].items():
+            out.setdefault(frame, label)
+    return out
+
+
+def shared_list(clip: str) -> set[int]:
+    path = config.EVAL_LABELS / "shared" / f"{clip}.json"
+    return set(json.loads(path.read_text(encoding="utf-8"))["frames"]) if path.exists() else set()
+
+
+def light_by_second(clip: str) -> list[tuple[float, float, str]]:
+    p = ClipPaths(clip)
+    if not p.quality.exists():
+        return []
+    return [(float(r["t_start"]), float(r["t_end"]), r["light"]) for r in read_csv(p.quality, QUALITY_COLS)]
+
+
+def light_at(lights: list[tuple[float, float, str]], t: float) -> str | None:
+    return next((c for a, b, c in lights if a <= t < b), None)
+
+
+def score_file(rows: dict[int, FrameHands], labels: dict[int, dict], shared: set[int],
+               lights: list[tuple[float, float, str]], fps: float) -> tuple[dict, dict[str, Tally]]:
+    """Every group is a Tally. Manual vs prefilled splits by the labelled hand, so a frame's two hands can
+    fall in different groups; only `all` counts predictions, and the manual/prefilled splits don't use precision."""
+    groups: dict[str, Tally] = defaultdict(Tally)
+    for frame, label in sorted(labels.items()):
+        pred = rows[frame].hands if frame in rows else []
+        hands = label["hands"]
+        groups["all"].add(hands, pred)
+        for tag in label.get("tags", []):
+            groups[f"tag:{tag}"].add(hands, pred)
+        light = light_at(lights, frame / fps)
+        if light:
+            groups[f"light:{light}"].add(hands, pred)
+        for side in SIDES:
+            which = [h for h in hands if h["side"] == side]
+            if which:
+                groups[f"side:{side}"].add(which, pred, count_preds=False)
+        manual = [h for h in hands if not h.get("prefill")]
+        filled = [h for h in hands if h.get("prefill")]
+        if frame in shared and manual:
+            groups["shared_manual"].add(manual, pred, count_preds=False)
+        if filled:
+            groups["prefilled"].add(filled, pred, count_preds=False)
+    out = groups["all"].result()
+    out["by_tag"] = {k[4:]: g.result() for k, g in groups.items() if k.startswith("tag:")}
+    out["by_light"] = {k[6:]: g.result() for k, g in groups.items() if k.startswith("light:")}
+    out["by_side"] = {k[5:]: g.result() for k, g in groups.items() if k.startswith("side:")}
+    out["pck_shared_manual"] = groups["shared_manual"].result()["pck_0.2"] if "shared_manual" in groups else None
+    out["pck_prefilled"] = groups["prefilled"].result()["pck_0.2"] if "prefilled" in groups else None
+    return out, groups
+
+
+def prefilled_share(labels: dict[int, dict]) -> float | None:
+    hands = [h for f in labels.values() for h in f["hands"]]
+    return round(sum(bool(h.get("prefill")) for h in hands) / len(hands), 4) if hands else None
+
+
+def agreement(by_labeller: dict[str, dict[int, dict]]) -> dict | None:
+    """Labellers against each other on frames they both labelled: how good a perfect tracker could look."""
+    names = sorted(by_labeller)
+    frames = n_pts = pts_ok = same_count = same_side = pairs = 0
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            for f in by_labeller[a].keys() & by_labeller[b].keys():
+                ha, hb = by_labeller[a][f]["hands"], by_labeller[b][f]["hands"]
+                frames += 1
+                same_count += len(ha) == len(hb)
+                if not ha or not hb:
+                    continue
+                errs = [[np.linalg.norm(label_points(x) - label_points(y), axis=1) / label_size(x) for y in hb] for x in ha]
+                cost = np.array([[e.mean() for e in row] for row in errs])
+                for r, c in zip(*linear_sum_assignment(cost)):
+                    pairs += 1
+                    same_side += ha[r]["side"] == hb[c]["side"]
+                    n_pts += len(errs[r][c])
+                    pts_ok += int((errs[r][c] <= PCK_THRESHOLD).sum())
+    if not frames:
+        return None
+    return {"frames": frames, "pck_0.2": round(pts_ok / n_pts, 4) if n_pts else None,
+            "same_hand_count": round(same_count / frames, 4), "same_side": round(same_side / pairs, 4) if pairs else None}
+
+
+def total_labelled_frames() -> int:
+    total = 0
+    for path in config.EVAL_LABELS.glob("*__*.json"):
+        total += len(json.loads(path.read_text(encoding="utf-8"))["frames"])
+    return total
+
+
+def worst_moments(rows: dict[int, FrameHands], labels: dict[int, dict], fps: float, k: int = 5) -> list[dict]:
+    """Labelled frames with the most missed hands, wrong sides and bad points, for finding the biggest failure."""
+    scored = []
+    for frame, label in labels.items():
+        pred = rows[frame].hands if frame in rows else []
+        pairs = match(label["hands"], pred)
+        missed = len(label["hands"]) - len(pairs)
+        extra = len(pred) - len(pairs)
+        wrong_side = sum(label["hands"][i]["side"] != pred[j].side for i, j, _ in pairs)
+        bad = sum(int((e > PCK_THRESHOLD).sum()) for _, _, e in pairs)
+        score = 8 * missed + 8 * wrong_side + 4 * extra + bad
+        if score:
+            scored.append({"frame": frame, "t": round(frame / fps, 2), "missed": missed, "extra": extra,
+                           "wrong_side": wrong_side, "bad_points": bad, "tags": label.get("tags", []), "score": score})
+    return sorted(scored, key=lambda s: -s["score"])[:k]
+
+
+def measure_fps(clip: str, n: int = FPS_FRAMES) -> float:
+    """MediaPipe alone on one clip's first sampled frames. Run with nothing else busy to get a fair number."""
+    from egovision.hands.baseline import _detect
+    t0 = time.time()
+    done = sum(1 for _ in islice(_detect(clip), n))
+    return round(done / max(time.time() - t0, 1e-6), 1)
+
+
+def hardware() -> str:
+    return f"{platform.processor() or platform.machine()}, {platform.system()}, CPU only"
+
+
+# ---------- one clip ----------
+def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
+    p = ClipPaths(clip)
+    meta = read_meta(p.meta)
+    fps, n, step = meta["fps"], meta["n_frames"], meta.get("step", config.FRAME_STEP)
+    minutes = n / fps / 60
+    by_labeller = load_labels(clip)
+    labels = merged_labels(by_labeller)
+    shared, lights = shared_list(clip), light_by_second(clip)
+    total = total_labelled_frames()
+
+    def full(path: Path) -> dict:
+        rows = list(read_hands(path))
+        by_frame = {fr.frame: fr for fr in rows}
+        out, _ = score_file(by_frame, labels, shared, lights, fps)
+        out["swaps_per_min"] = round(swaps_per_min(rows, step, minutes), 2)
+        out["jitter_px"] = round(jitter(rows, step), 2)
+        out["two_hand_frames"] = pair_order(rows, step)
+        out["worst_moments"] = worst_moments(by_frame, labels, fps)
+        return out
+
+    results = {name: full(path) for name, path in (("baseline", p.hands_baseline), ("hands", p.hands)) if path.exists()}
+    old = json.loads(p.metrics.read_text(encoding="utf-8")) if p.metrics.exists() else {}
+    keys = ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2", "swaps_per_min", "jitter_px")
+    m: dict = {"clip": clip, "partial": total < FULL_LABELS, "labels_total_team": total, "labelled_frames": len(labels),
+               "labellers": sorted(by_labeller), "labels_prefilled_share": prefilled_share(labels),
+               "inter_labeller": agreement(by_labeller), "hardware": hardware()}
+    for name, prefix in (("hands", ""), ("baseline", "baseline_")):
+        for k in keys:
+            if name in results:
+                m[prefix + k] = results[name][k]
+    if fps_measure:
+        m["fps"] = measure_fps(clip)
+    elif "fps" in old:
+        m["fps"] = old["fps"]
+    m.update(results)
+    entry = {"at": datetime.now().isoformat(timespec="seconds"), "note": note,
+             **{k: m.get(k) for k in keys}, **{f"baseline_{k}": m.get(f"baseline_{k}") for k in keys}}
+    m["history"] = old.get("history", []) + [entry]
+    p.metrics.write_text(json.dumps(m, indent=2), encoding="utf-8")
+    return m
+
+
+def summary(clips: list[str], note: str = "") -> dict:
+    """Pools the raw counts over clips, so a clip with more labels weighs more."""
+    out: dict = {"clips": clips, "labels_total_team": total_labelled_frames()}
+    out["partial"] = out["labels_total_team"] < FULL_LABELS
+    for name, attr in (("baseline", "hands_baseline"), ("hands", "hands")):
+        pooled: dict[str, Tally] = defaultdict(Tally)
+        for clip in clips:
+            p = ClipPaths(clip)
+            path = getattr(p, attr)
+            if not path.exists():
+                continue
+            labels = merged_labels(load_labels(clip))
+            rows = {fr.frame: fr for fr in read_hands(path)}
+            fps = read_meta(p.meta)["fps"]
+            _, groups = score_file(rows, labels, shared_list(clip), light_by_second(clip), fps)
+            for key, g in groups.items():
+                t = pooled[key]
+                for a in ("labels", "preds", "matched", "side_ok", "pts", "pts_ok", "frames"):
+                    setattr(t, a, getattr(t, a) + getattr(g, a))
+                t.wrist_err += g.wrist_err
+        if "all" in pooled:
+            out[name] = {**pooled["all"].result(),
+                         "by_tag": {k[4:]: g.result() for k, g in pooled.items() if k.startswith("tag:")},
+                         "by_light": {k[6:]: g.result() for k, g in pooled.items() if k.startswith("light:")},
+                         "by_side": {k[5:]: g.result() for k, g in pooled.items() if k.startswith("side:")},
+                         "pck_shared_manual": pooled["shared_manual"].result()["pck_0.2"] if "shared_manual" in pooled else None,
+                         "pck_prefilled": pooled["prefilled"].result()["pck_0.2"] if "prefilled" in pooled else None}
+    path = config.OUTPUTS / "metrics_summary.json"
+    old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    snapshot = {k: out.get("hands", {}).get(k) for k in ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2")}
+    out["history"] = old.get("history", []) + [{"at": datetime.now().isoformat(timespec="seconds"), "note": note, **snapshot}]
+    path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    return out
+
+
+def labelled_clips() -> list[str]:
+    return sorted({p.stem.split("__")[0] for p in config.EVAL_LABELS.glob("*__*.json")})
+
+
+def _line(name: str, m: dict) -> str:
+    def v(k):
+        return "  n/a" if m.get(k) is None else f"{m[k]:5.3f}"
+    return (f"  {name:9s} recall {v('detection_recall')}  precision {v('detection_precision')}  "
+            f"L/R {v('lr_accuracy')}  PCK {v('pck_0.2')}  labels {m.get('labels')}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="python -m egovision.eval.metrics", description=__doc__.split("\n")[0])
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument("--clip")
+    g.add_argument("--all", action="store_true", help="every clip that has labels")
+    ap.add_argument("--fps", action="store_true", help=f"also time MediaPipe on {FPS_FRAMES} frames; run with the laptop idle")
+    ap.add_argument("--note", default="", help="what changed, kept in the history")
+    a = ap.parse_args(argv)
+    clips = labelled_clips() if a.all else [a.clip]
+    done = []
+    for clip in clips:
+        if not ClipPaths(clip).meta.exists():
+            print(f"{clip}: no outputs on this laptop, skipped")
+            continue
+        m = evaluate(clip, a.fps, a.note)
+        done.append(clip)
+        print(f"{clip}: {m['labelled_frames']} labelled frames{' (partial)' if m['partial'] else ''}")
+        for name in ("baseline", "hands"):
+            if name in m:
+                print(_line(name, m[name]))
+    if done:
+        s = summary(done, a.note)
+        print(f"ALL {len(done)} clips, {s['labels_total_team']} team labels{' (partial)' if s['partial'] else ''}")
+        for name in ("baseline", "hands"):
+            if name in s:
+                print(_line(name, s[name]))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
