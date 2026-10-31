@@ -24,7 +24,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Who | What |
 |---|---|
 | Gunagye | G2 contacts, G3 index, G5a app on fixtures done → waiting at checkpoint G-2 |
-| Abhijay | A1 baseline code pushed; mirror check and real-clip run need `clips_480p` |
+| Abhijay | A1 done: baseline on all 40 clips, `MIRROR = False` → waiting on checkpoint A-1, then A2 |
 | Bhavyam | B4 face redaction scanned on all 40 clips; human 20-frame spot check in progress → checkpoint B-1 |
 | Shefali | S1 label tool built + tested on fixtures; 5-frame real-clip check, then S-1 |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
@@ -39,4 +39,4 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 ## Open questions
 - Sponsors / partners and any sponsor-specific prizes?
 - Which clips are the demo clips?
-- Is MediaPipe left/right mirrored on these clips? (A1)
+- Files in our `clips_480p/` are 1920x1080, not 480p: is that the organisers' folder, or the full-res set?

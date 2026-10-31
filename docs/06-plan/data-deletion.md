@@ -22,6 +22,7 @@ Organisers' data-use rule: delete **every copy** of the data, including uploads 
 | Gemini Files API uploads (script deletes them where `GEMINI_API_KEY` is set; then check AI Studio) | Shefali | [ ] |
 | Colab runtime files + any Google Drive folder Colab used for clips / `wilor.jsonl` | Abhijay | [ ] |
 | Kaggle datasets / notebooks with clips, if any | whoever made them | [ ] |
+| OneDrive: repo folder is inside Abhijay's OneDrive; check onedrive.com + its recycle bin for clips and `outputs/` | Abhijay | [ ] |
 | Private team Drive folder (`wilor.jsonl`, renders, demo cuts), then Drive Trash | Gunagye | [ ] |
 
 The submission copy in the **organisers'** Drive is theirs; leave it.

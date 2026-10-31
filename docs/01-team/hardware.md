@@ -6,7 +6,7 @@ Each member: fill in RAM / VRAM / storage. Specs marked `(assumption)` are typic
 | Member | Laptop | CPU / GPU | ML backend | Notes |
 |---|---|---|---|---|
 | Bhavyam | Lenovo LOQ | NVIDIA RTX 2050 (4 GB VRAM, assumption) | CUDA (PyTorch, TF) | Small-model training, fine-tuning with small batches |
-| Abhijay | HP Omen | NVIDIA RTX 3050 (4–6 GB VRAM, assumption) | CUDA (PyTorch, TF) | Strongest GPU on the team → main training machine |
+| Abhijay | HP Omen | Intel i7-13700HX (16 cores), NVIDIA RTX 3050 (6 GB VRAM), 16 GB RAM | CUDA (PyTorch, TF) | Strongest GPU on the team → main training machine |
 | Gunagye | Lenovo Yoga | Intel Core Ultra 7 155H, Intel Arc iGPU, NPU | CPU, Intel XPU / OpenVINO | Good for inference, data processing, backend/frontend |
 | Shefali | MacBook Air M4 | Apple M4 (unified memory) | MPS (PyTorch), Core ML / MLX | Fanless: long training runs throttle; good for inference, iOS builds |
 
