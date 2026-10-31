@@ -55,7 +55,7 @@ class _Track:
 def _cost(tr: _Track, h: Hand, t: float, width: int) -> float:
     gap = t - tr.last_t
     differs = tr.last.side != h.side
-    if differs and gap > params.SIDE_STRICT_AFTER_S:
+    if differs and (gap > params.SIDE_STRICT_AFTER_S or iou(tr.last.bbox, h.bbox) < params.SIDE_SWITCH_IOU):
         return FORBIDDEN
     size = max(hand_size(tr.last), hand_size(h))
     gate = min(size * (params.GATE_SIZES + params.GATE_SIZES_PER_S * gap), params.GATE_MAX_WIDTH * width)

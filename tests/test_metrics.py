@@ -121,7 +121,8 @@ def test_several_labellers_give_one_label_per_frame():
 def test_worst_moments_rank_misses_first():
     out = M.worst_moments(rows([pred()], [pred(off=20)], []), labels(frame([label()]), frame([label()]), frame([label()])), FPS)
     assert [m["frame"] for m in out] == [4, 2]
-    assert out[0]["missed"] == 1 and out[1]["bad_points"] == 6
+    assert out[0]["missed"] == ["left"] and out[1]["bad_points"] == 6
+    assert M.failures(out)[0]["what"] == "left hand missing"
 
 
 def test_light_lookup_handles_gaps():
@@ -145,20 +146,29 @@ def clip_files(tmp_path, monkeypatch):
     return p
 
 
-def test_metrics_file_has_flat_numbers_for_the_index_and_keeps_history(clip_files):
+def test_metrics_file_follows_the_page_format_and_keeps_history(clip_files):
     M.main(["--clip", "clipx", "--note", "first"])
     M.main(["--clip", "clipx", "--note", "second"])
     m = json.loads(clip_files.metrics.read_text())
-    assert m["partial"] is True and m["labelled_frames"] == 1
-    assert m["detection_recall"] == 1.0 and m["baseline_detection_recall"] == 1.0 and m["pck_0.2"] == 1.0
-    assert isinstance(m["swaps_per_min"], (int, float)) and "by_light" in m["hands"]
+    assert m["partial"] is True and m["n_labels"] == 1
+    assert m["ours"]["detection_recall"] == 1.0 and m["baseline"]["pck_0.2"] == 1.0
+    assert isinstance(m["ours"]["swaps_per_min"], (int, float)) and m["hardware"]
+    assert m["per_light"] == {} and "pck_prefilled" not in m["labels"] and m["labels"]["prefilled_share"] == 0.0
     assert [h["note"] for h in m["history"]] == ["first", "second"]
+
+
+def test_per_light_has_both_files_side_by_side():
+    r = {"baseline": {"by_light": {"green": {"labels": 3, "pck_0.2": 0.5, "detection_recall": None, "lr_accuracy": 1.0}}},
+         "ours": {"by_light": {"green": {"labels": 3, "pck_0.2": 0.7, "detection_recall": 1.0, "lr_accuracy": 1.0}}}}
+    out = M.per_light(r)
+    assert out["green"]["n"] == 3 and out["green"]["ours"]["pck_0.2"] == 0.7
+    assert "detection_recall" not in out["green"]["baseline"]
 
 
 def test_summary_pools_counts_over_clips(clip_files):
     M.main(["--all"])
     s = json.loads((config.OUTPUTS / "metrics_summary.json").read_text())
-    assert s["clips"] == ["clipx"] and s["hands"]["detection_recall"] == 1.0 and s["partial"] is True
+    assert s["clips"] == ["clipx"] and s["ours"]["detection_recall"] == 1.0 and s["partial"] is True
 
 
 def test_not_partial_with_enough_labels(clip_files, tmp_path):

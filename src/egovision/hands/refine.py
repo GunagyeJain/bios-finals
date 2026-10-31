@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from collections import defaultdict
 from dataclasses import replace
 from typing import Callable, Iterable
@@ -128,6 +129,7 @@ def run(clip: str) -> None:
     fps, n, w, h = meta["fps"], meta["n_frames"], meta["width"], meta["height"]
     step = meta.get("step", config.FRAME_STEP)
     before = list(read_hands(p.hands_baseline))
+    t0 = time.time()
     images = frames(p.video, step=step) if p.video.exists() else ()
     wilor = list(read_hands(p.wilor)) if p.wilor.exists() else ()
     after = refine(before, n, fps, w, h, images, wilor)
@@ -135,7 +137,9 @@ def run(clip: str) -> None:
     tmp = p.hands.with_suffix(".tmp")
     write_hands(tmp, after)
     tmp.replace(p.hands)
+    took = time.time() - t0
     s = stats(before, after, n, fps, step)
+    s["fps"] = round(n / max(took, 1e-6), 1)
     (p.dir / "hands_stats.json").write_text(json.dumps(s, indent=2), encoding="utf-8")
     print(f"  {clip}: swaps/min {s['swaps_per_min']}, jitter px {s['jitter_px']}, tracks {s['tracks']}")
 

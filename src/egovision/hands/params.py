@@ -15,6 +15,7 @@ GATE_SIZES = 1.5            # max wrist jump to the next frame, in hand sizes
 GATE_SIZES_PER_S = 2.0      # gate growth per second a track has been lost
 GATE_MAX_WIDTH = 0.25       # gate never exceeds this share of the frame width
 SIDE_STRICT_AFTER_S = 0.5   # a track lost longer than this only re-attaches to its own label
+SIDE_SWITCH_IOU = 0.0       # a label change only stays on the track if the boxes overlap this much
 COST_SIDE, COST_IOU, COST_DIST = 0.3, 0.3, 0.4
 
 # Side voting

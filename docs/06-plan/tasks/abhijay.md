@@ -44,9 +44,9 @@
 ⛔ **CHECKPOINT A-3** · Show: the 10 hardest seconds, refined vs refined+WiLoR; % escalated.
 
 ## A5 · Metrics from labels (2 h) · P0
-- [ ] `python -m egovision.eval.metrics --clip X` → `outputs/<clip>/metrics.json` for **both** `hands_baseline` and `hands`: detection recall + precision, left/right accuracy, PCK@0.2 (wrist + 5 tips, normalised by box size), swaps/min, jitter, FPS + hardware, accuracy per light colour (from `quality.csv` if present).
-- [ ] Inter-labeller agreement on the 30 double-labelled frames.
-- [ ] Split by tags (`blur`, `glove`, `dark`, `overlap`, `reentry`).
+- [x] `python -m egovision.eval.metrics --clip X` → `outputs/<clip>/metrics.json` for **both** `hands_baseline` and `hands`: detection recall + precision, left/right accuracy, PCK@0.2 (wrist + 5 tips, normalised by box size), swaps/min, jitter, FPS + hardware, accuracy per light colour (from `quality.csv` if present).
+- [x] Inter-labeller agreement on the 30 double-labelled frames.
+- [x] Split by tags (`blur`, `glove`, `dark`, `overlap`, `reentry`).
 - Fallback: labels incomplete → run on what exists, write `"partial": true`.
 - Done when: tests with tiny synthetic labels and predictions.
 

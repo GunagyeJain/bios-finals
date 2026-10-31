@@ -1,7 +1,7 @@
 """A5 · owner: Abhijay. `python -m egovision.eval.metrics --clip X` (or `--all`) → outputs/<clip>/metrics.json
 Compares hands_baseline.jsonl and hands.jsonl against eval/labels/; accuracy per light colour from quality.csv.
-Top-level numbers are the final hands (`baseline_*` for the baseline), so the index and the app can read them;
-`baseline` / `hands` hold the full breakdown; `history` keeps earlier runs for before/after.
+Format: docs/05-solution/data-schema.md 1.3 (`baseline` and `ours` hold the numbers and breakdowns); `history`
+keeps earlier runs for before/after. `--fps` times MediaPipe; `hands` FPS comes from outputs/<clip>/hands_stats.json.
 Pooled numbers over all labelled clips: outputs/metrics_summary.json.
 """
 from __future__ import annotations
@@ -261,15 +261,30 @@ def worst_moments(rows: dict[int, FrameHands], labels: dict[int, dict], fps: flo
     for frame, label in labels.items():
         pred = rows[frame].hands if frame in rows else []
         pairs = match(label["hands"], pred)
-        missed = len(label["hands"]) - len(pairs)
+        found = {i for i, _, _ in pairs}
+        missed = [h["side"] for i, h in enumerate(label["hands"]) if i not in found]
         extra = len(pred) - len(pairs)
-        wrong_side = sum(label["hands"][i]["side"] != pred[j].side for i, j, _ in pairs)
+        wrong_side = [label["hands"][i]["side"] for i, j, _ in pairs if label["hands"][i]["side"] != pred[j].side]
         bad = sum(int((e > PCK_THRESHOLD).sum()) for _, _, e in pairs)
-        score = 8 * missed + 8 * wrong_side + 4 * extra + bad
+        score = 8 * len(missed) + 8 * len(wrong_side) + 4 * extra + bad
         if score:
             scored.append({"frame": frame, "t": round(frame / fps, 2), "missed": missed, "extra": extra,
                            "wrong_side": wrong_side, "bad_points": bad, "tags": label.get("tags", []), "score": score})
     return sorted(scored, key=lambda s: -s["score"])[:k]
+
+
+def failures(moments: list[dict]) -> list[dict]:
+    """Worst moments in the Metrics page's words. `why` only states what was measured or tagged."""
+    out = []
+    for w in moments:
+        parts = [f"{s} hand missing" for s in w["missed"]] + [f"{s} hand called the other side" for s in w["wrong_side"]]
+        if w["extra"]:
+            parts.append("hand found where none is labelled")
+        if w["bad_points"]:
+            parts.append(f"{w['bad_points']} points off")
+        out.append({"t": w["t"], "what": "; ".join(parts),
+                    "why": f"labelled {', '.join(w['tags'])}" if w["tags"] else "no tag on this frame"})
+    return out
 
 
 def measure_fps(clip: str, n: int = FPS_FRAMES) -> float:
@@ -285,7 +300,22 @@ def hardware() -> str:
 
 
 # ---------- one clip ----------
+def _clean(d: dict) -> dict:
+    """A key that can't be computed is left out (data-schema.md 1.3)."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
+def per_light(results: dict[str, dict]) -> dict:
+    out: dict = {}
+    for name, r in results.items():
+        for light, v in r.get("by_light", {}).items():
+            row = out.setdefault(light, {"n": v["labels"]})
+            row[name] = _clean({k: v[k] for k in ("pck_0.2", "detection_recall", "lr_accuracy")})
+    return out
+
+
 def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
+    """Format: docs/05-solution/data-schema.md 1.3. Extra keys are breakdowns for tuning."""
     p = ClipPaths(clip)
     meta = read_meta(p.meta)
     fps, n, step = meta["fps"], meta["n_frames"], meta.get("step", config.FRAME_STEP)
@@ -303,26 +333,27 @@ def evaluate(clip: str, fps_measure: bool = False, note: str = "") -> dict:
         out["jitter_px"] = round(jitter(rows, step), 2)
         out["two_hand_frames"] = pair_order(rows, step)
         out["worst_moments"] = worst_moments(by_frame, labels, fps)
-        return out
+        return _clean(out)
 
-    results = {name: full(path) for name, path in (("baseline", p.hands_baseline), ("hands", p.hands)) if path.exists()}
+    results = {name: full(path) for name, path in (("baseline", p.hands_baseline), ("ours", p.hands)) if path.exists()}
     old = json.loads(p.metrics.read_text(encoding="utf-8")) if p.metrics.exists() else {}
-    keys = ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2", "swaps_per_min", "jitter_px")
-    m: dict = {"clip": clip, "partial": total < FULL_LABELS, "labels_total_team": total, "labelled_frames": len(labels),
-               "labellers": sorted(by_labeller), "labels_prefilled_share": prefilled_share(labels),
-               "inter_labeller": agreement(by_labeller), "hardware": hardware()}
-    for name, prefix in (("hands", ""), ("baseline", "baseline_")):
-        for k in keys:
-            if name in results:
-                m[prefix + k] = results[name][k]
+    speed = dict(old.get("fps") or {}) if isinstance(old.get("fps"), dict) else {}
     if fps_measure:
-        m["fps"] = measure_fps(clip)
-    elif "fps" in old:
-        m["fps"] = old["fps"]
-    m.update(results)
-    entry = {"at": datetime.now().isoformat(timespec="seconds"), "note": note,
-             **{k: m.get(k) for k in keys}, **{f"baseline_{k}": m.get(f"baseline_{k}") for k in keys}}
-    m["history"] = old.get("history", []) + [entry]
+        speed["hands_baseline"] = measure_fps(clip)
+    stats = p.dir / "hands_stats.json"
+    if stats.exists() and "fps" in (s := json.loads(stats.read_text(encoding="utf-8"))):
+        speed["hands"] = s["fps"]
+    ours = results.get("ours", {})
+    m: dict = {"clip": clip, "partial": total < FULL_LABELS, "n_labels": len(labels), "labels_total_team": total,
+               "labellers": sorted(by_labeller), **results, "per_light": per_light(results),
+               "labels": _clean({"prefilled_share": prefilled_share(labels), "pck_manual": ours.get("pck_shared_manual"),
+                                 "pck_prefilled": ours.get("pck_prefilled")}),
+               "fps": speed, "hardware": hardware(), "failures": failures(ours.get("worst_moments", []))}
+    if (agree := agreement(by_labeller)):
+        m["inter_labeller"] = agree
+    keys = ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2", "swaps_per_min", "jitter_px")
+    m["history"] = old.get("history", []) + [{"at": datetime.now().isoformat(timespec="seconds"), "note": note,
+                                              **{f"{name}.{k}": r.get(k) for name, r in results.items() for k in keys}}]
     p.metrics.write_text(json.dumps(m, indent=2), encoding="utf-8")
     return m
 
@@ -331,7 +362,7 @@ def summary(clips: list[str], note: str = "") -> dict:
     """Pools the raw counts over clips, so a clip with more labels weighs more."""
     out: dict = {"clips": clips, "labels_total_team": total_labelled_frames()}
     out["partial"] = out["labels_total_team"] < FULL_LABELS
-    for name, attr in (("baseline", "hands_baseline"), ("hands", "hands")):
+    for name, attr in (("baseline", "hands_baseline"), ("ours", "hands")):
         pooled: dict[str, Tally] = defaultdict(Tally)
         for clip in clips:
             p = ClipPaths(clip)
@@ -356,7 +387,7 @@ def summary(clips: list[str], note: str = "") -> dict:
                          "pck_prefilled": pooled["prefilled"].result()["pck_0.2"] if "prefilled" in pooled else None}
     path = config.OUTPUTS / "metrics_summary.json"
     old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    snapshot = {k: out.get("hands", {}).get(k) for k in ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2")}
+    snapshot = {k: out.get("ours", {}).get(k) for k in ("detection_recall", "detection_precision", "lr_accuracy", "pck_0.2")}
     out["history"] = old.get("history", []) + [{"at": datetime.now().isoformat(timespec="seconds"), "note": note, **snapshot}]
     path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     return out
@@ -389,14 +420,14 @@ def main(argv: list[str] | None = None) -> int:
             continue
         m = evaluate(clip, a.fps, a.note)
         done.append(clip)
-        print(f"{clip}: {m['labelled_frames']} labelled frames{' (partial)' if m['partial'] else ''}")
-        for name in ("baseline", "hands"):
+        print(f"{clip}: {m['n_labels']} labelled frames{' (partial)' if m['partial'] else ''}")
+        for name in ("baseline", "ours"):
             if name in m:
                 print(_line(name, m[name]))
     if done:
         s = summary(done, a.note)
         print(f"ALL {len(done)} clips, {s['labels_total_team']} team labels{' (partial)' if s['partial'] else ''}")
-        for name in ("baseline", "hands"):
+        for name in ("baseline", "ours"):
             if name in s:
                 print(_line(name, s[name]))
     return 0

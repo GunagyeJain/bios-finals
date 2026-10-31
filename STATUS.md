@@ -24,7 +24,7 @@ Spec: `docs/05-solution/prd.md` · `trd.md` · `app-flow.md` · `data-schema.md`
 | Who | What |
 |---|---|
 | Gunagye | Sprint 2: hand + forearm masks in render, 3 demo clips end to end, Metrics page |
-| Abhijay | A2-A3 done: `hands.jsonl` on all 40 clips (swaps/min 41.2 to 2.7) → waiting on checkpoint A-2, then A4 |
+| Abhijay | A5 metrics code pushed, v1 on MTL-SKL00089-012 (partial, 40 labels) → labels on `mytronlabs-000003-002` and shared `MTL-SKL00089-005`, then A6 |
 | Bhavyam | B3 done; quality on 40 clips running in background; next labels → B5 |
 | Shefali | Labels 40 done · S3 order check done · README + slide outline + demo script drafted · S2 on demo clips waiting for API key + contacts |
 | All | E2 skim 5 clips each → `docs/04-research/clip-notes.md` |
