@@ -1,9 +1,10 @@
 """Module-local thresholds and constants. Only this module's owner edits this file."""
 import os
 
-# Gemini. Free-tier quotas are small (Flash has been cut to tens of requests a day), so the default is
-# the Flash-Lite alias; override with GEMINI_MODEL=... after checking AI Studio.
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-lite-latest")
+# Gemini. Newest stable Flash with a free tier, video input and structured output
+# (ai.google.dev/gemini-api/docs/models and /pricing, checked 31 Oct 2026). Free-tier quotas are small:
+# if the key runs out, GEMINI_MODEL=gemini-3.5-flash-lite (also free, video input).
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 MAX_CALLS_PER_RUN = int(os.environ.get("GEMINI_MAX_CALLS", 40))   # quota guard; the rest fall back to contact rows
 MAX_RETRIES = 6
 BACKOFF_S = 4.0            # 4, 8, 16 ... seconds on 429 / 5xx

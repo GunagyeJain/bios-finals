@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from egovision import config
-from egovision.schema import STEP_COLS, read_csv
+from egovision.schema import STEP_COLS, VERBS, read_csv
 from egovision.steps import caption as cap
 from egovision.steps import params as P
 
@@ -114,3 +114,30 @@ def test_run_falls_back_to_fixed_windows_without_contacts(fixture_clip, monkeypa
     cap.run("fixture_001")
     rows = read_csv(fixture_clip.steps, STEP_COLS)
     assert float(rows[-1]["end_s"]) == pytest.approx(12.0) and len(rows) == round(12 / P.FALLBACK_WIN_S)
+
+
+class RecordingModels(FakeModels):
+    def generate_content(self, model, contents, config):
+        self.seen = (model, contents, config)
+        return super().generate_content(model, contents, config)
+
+
+def test_mocked_gemini_columns_verb_list_and_cache(fixture_clip):
+    odd = dict(ANSWER, verb="screw")                    # not in the fixed verb list
+    models = RecordingModels([odd, ANSWER, ANSWER, ANSWER])
+    cap.run("fixture_001", client=SimpleNamespace(models=models), sleep=lambda s: None)
+    assert fixture_clip.steps.read_text().splitlines()[0] == ",".join(STEP_COLS)
+    rows = read_csv(fixture_clip.steps, STEP_COLS)
+    assert rows[0]["verb"] == "other" and all(r["verb"] in VERBS for r in rows)
+    model, contents, config = models.seen
+    assert model == P.MODEL
+    assert config.response_schema["properties"]["verb"]["enum"] == list(VERBS)
+    assert all(v in contents[-1] for v in VERBS)       # the prompt names every allowed verb
+    assert len(list(config_cache_files(fixture_clip))) == 4
+    again = RecordingModels([])
+    cap.run("fixture_001", client=SimpleNamespace(models=again), sleep=lambda s: None)
+    assert again.calls == 0                             # every window answered from the cache
+
+
+def config_cache_files(_clip):
+    return config.GEMINI_CACHE.glob("*.json")
