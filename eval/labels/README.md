@@ -6,4 +6,4 @@ Hand labels for the metrics (A5). Coordinates only, never images. Format: `docs/
 - `shared/<clip>.json`: frame list of the common 30-frame set (`--shared`), so every labeller gets the same frames.
 
 Label: `python -m egovision.eval.label_tool --clip <clip> --labeller <firstname> --n 40`
-(how-to at the top of `src/egovision/eval/label_tool.py`). Frame images go to `eval/frames/`, which is git-ignored.
+(how-to at the top of `src/egovision/eval/label_tool.py`). Window ignores keys or clicks? Add `--web` and open http://localhost:8765. Frame images go to `eval/frames/`, which is git-ignored.

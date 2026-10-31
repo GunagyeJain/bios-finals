@@ -8,12 +8,15 @@ starts with the next click. Press Enter (or `n`) to save the frame and go on; a 
 saved as "no hands", which is a valid label. `x` skips an unusable frame, `u` undoes the last click, `t` then a
 digit toggles a tag (1 blur, 2 glove, 3 dark, 4 overlap, 5 reentry), `q` saves and quits. Every frame is
 written to disk at once, so quitting and running the same command again resumes where you stopped.
+If the window shows but ignores keys or clicks (seen on macOS), add `--web` and open http://localhost:8765:
+same labels and keys in the browser, tags on keys 1 to 5 directly, Ctrl-C in the terminal to stop.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import random
+import sys
 import zlib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -314,51 +317,139 @@ def label_frame(img, d: FrameDraft, scale: float, header: str) -> str:
                 return "next"
 
 
+class Session:
+    """Which frames to label, what is done, and saving. Shared by the OpenCV window and the browser page."""
+
+    def __init__(self, clip: str, labeller: str, n: int, shared: bool):
+        self.clip, self.labeller = clip, labeller.strip().lower()
+        self.width, self.height, n_frames, self.fps, step = clip_info(clip)
+        if shared:
+            self.todo = shared_frames(clip, n_frames, self.fps, step)
+        else:
+            self.todo = labelling_order(n, n_frames, hard_frames(clip, n_frames, self.fps, step),
+                                        seed_for(clip, self.labeller), step, int(self.fps))
+        self.out = labels_path(clip, self.labeller)
+        self.data = load_labels(self.out, clip, self.labeller)
+        self.skip_file = FRAMES_DIR / clip / f"skipped__{self.labeller}.txt"
+        self.skipped = set(map(int, self.skip_file.read_text().split())) if self.skip_file.exists() else set()
+        self.done = {f["frame"] for f in self.data["frames"]}
+        self.goal = len(self.todo) if shared else n
+
+    def next_frame(self) -> int | None:
+        if len(self.done) >= self.goal:
+            return None
+        return next((f for f in self.todo if f not in self.done and f not in self.skipped), None)
+
+    def header(self, frame: int) -> str:
+        return f"{self.clip}  frame {frame} ({frame / self.fps:.1f} s)  labelled {len(self.done)}/{self.goal}"
+
+    def save(self, d: FrameDraft) -> None:
+        save_labels(self.out, self.data, d.to_label(self.width, self.height))
+        self.done.add(d.frame)
+        print(f"saved frame {d.frame}: {len(d.hands)} hand(s), tags {d.tags or '-'}  ({len(self.done)}/{self.goal})")
+
+    def skip(self, frame: int) -> None:
+        self.skipped.add(frame)
+        self.skip_file.parent.mkdir(parents=True, exist_ok=True)
+        self.skip_file.write_text(" ".join(map(str, sorted(self.skipped))) + "\n")
+        print(f"skipped frame {frame}")
+
+
 def run(clip: str, labeller: str, n: int, shared: bool, scale: float | None) -> Path:
     import cv2
-    labeller = labeller.strip().lower()
-    width, height, n_frames, fps, step = clip_info(clip)
-    if shared:
-        todo = shared_frames(clip, n_frames, fps, step)
-    else:
-        todo = labelling_order(n, n_frames, hard_frames(clip, n_frames, fps, step),
-                               seed_for(clip, labeller), step, int(fps))
-    out = labels_path(clip, labeller)
-    data = load_labels(out, clip, labeller)
-    skip_file = FRAMES_DIR / clip / f"skipped__{labeller}.txt"
-    skipped = set(map(int, skip_file.read_text().split())) if skip_file.exists() else set()
-    done = {f["frame"] for f in data["frames"]}
-    goal = len(todo) if shared else n
-    scale = scale or min(2.0, FIT[0] / width, FIT[1] / height)
+    s = Session(clip, labeller, n, shared)
+    scale = scale or min(2.0, FIT[0] / s.width, FIT[1] / s.height)
     cv2.namedWindow(WINDOW, cv2.WINDOW_AUTOSIZE)
     try:
-        for frame in todo:
-            if len(done) >= goal:
-                break
-            if frame in done or frame in skipped:
-                continue
+        while (frame := s.next_frame()) is not None:
             img = frame_image(clip, frame)
             if img is None:
+                s.skipped.add(frame)
                 continue
             d = FrameDraft(frame)
-            header = f"{clip}  frame {frame} ({frame / fps:.1f} s)  labelled {len(done)}/{goal}"
-            action = label_frame(img, d, scale, header)
+            action = label_frame(img, d, scale, s.header(frame))
             if action == "quit":
                 break
             if action == "skip":
-                skipped.add(frame)
-                skip_file.parent.mkdir(parents=True, exist_ok=True)
-                skip_file.write_text(" ".join(map(str, sorted(skipped))) + "\n")
-                print(f"skipped frame {frame}")
-                continue
-            save_labels(out, data, d.to_label(width, height))
-            done.add(frame)
-            print(f"saved frame {frame}: {len(d.hands)} hand(s), tags {d.tags or '-'}  ({len(done)}/{goal})")
+                s.skip(frame)
+            else:
+                s.save(d)
     finally:
         cv2.destroyAllWindows()
         cv2.waitKey(1)
-    print(f"{len(done)}/{goal} frames labelled → {out}")
-    return out
+    print(f"{len(s.done)}/{s.goal} frames labelled → {s.out}")
+    return s.out
+
+
+# ---------- browser page (--web): same labels, for when the OpenCV window gets no keys or clicks ----------
+def serve(clip: str, labeller: str, n: int, shared: bool, port: int) -> None:
+    import cv2
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    sys.stdout.reconfigure(line_buffering=True)          # progress lines show up even when piped
+    s = Session(clip, labeller, n, shared)
+    from .label_page import PAGE
+    page = PAGE.encode()
+
+    def state() -> dict:
+        frame = s.next_frame()
+        return {"clip": clip, "labeller": s.labeller, "frame": frame, "done": len(s.done), "goal": s.goal,
+                "width": s.width, "height": s.height, "tags": TAGS, "out": str(s.out.relative_to(config.ROOT)),
+                "header": s.header(frame) if frame is not None else f"{clip}: all {s.goal} frames labelled"}
+
+    class Handler(BaseHTTPRequestHandler):
+        def _send(self, code: int, body: bytes, kind: str) -> None:
+            self.send_response(code)
+            self.send_header("Content-Type", kind)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _json(self, obj: dict, code: int = 200) -> None:
+            self._send(code, json.dumps(obj).encode(), "application/json")
+
+        def log_message(self, *_):
+            pass
+
+        def do_GET(self):
+            if self.path == "/":
+                self._send(200, page, "text/html; charset=utf-8")
+            elif self.path == "/api/state":
+                self._json(state())
+            elif self.path.startswith("/frame/"):
+                img = frame_image(clip, int(self.path.split("/")[-1].split(".")[0]))
+                if img is None:
+                    return self._json({"error": "frame not readable"}, 404)
+                self._send(200, cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])[1].tobytes(), "image/jpeg")
+            else:
+                self._json({"error": "not found"}, 404)
+
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+            frame = body.get("frame")
+            if frame != s.next_frame():
+                return self._json({"error": "stale frame, reloading", **state()}, 409)
+            if self.path == "/api/skip":
+                s.skip(frame)
+                return self._json(state())
+            if self.path != "/api/save":
+                return self._json({"error": "not found"}, 404)
+            d = FrameDraft(frame, [HandDraft([[round(float(x), 1), round(float(y), 1)] for x, y in h["points"]],
+                                             h.get("side")) for h in body.get("hands", [])],
+                           [t for t in body.get("tags", []) if t in TAGS])
+            if d.problem():
+                return self._json({"error": d.problem()}, 400)
+            s.save(d)
+            self._json(state())
+
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    print(f"label page: http://localhost:{port}  (Ctrl-C to stop; labels → {s.out})")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        print(f"{len(s.done)}/{s.goal} frames labelled → {s.out}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -367,12 +458,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--labeller", required=True, help="your first name, lowercase")
     ap.add_argument("--n", type=int, default=40, help="frames to label (ignored with --shared)")
     ap.add_argument("--shared", action="store_true", help=f"the common {SHARED_N}-frame set (same frames for everyone)")
+    ap.add_argument("--web", action="store_true", help="label in the browser instead of an OpenCV window")
+    ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--debug", action="store_true", help="print every key and click")
     ap.add_argument("--scale", type=float, default=None, help="window zoom (default: fit the frame in 1200x660)")
     a = ap.parse_args(argv)
     global DEBUG
     DEBUG = a.debug
-    run(a.clip, a.labeller, a.n, a.shared, a.scale)
+    if a.web:
+        serve(a.clip, a.labeller, a.n, a.shared, a.port)
+    else:
+        run(a.clip, a.labeller, a.n, a.shared, a.scale)
     return 0
 
 
