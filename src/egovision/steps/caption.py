@@ -144,6 +144,7 @@ def make_client():
 
 
 _exhausted: set[str] = set()                        # models whose daily quota ran out in this process
+_overloaded: set[str] = set()                       # models that kept answering 5xx: tried last from then on
 
 
 def _code(err: Exception) -> int | None:
@@ -159,17 +160,20 @@ def _daily_quota(err: Exception) -> bool:
 def ask_gemini(client, video: bytes, prompt: str, sleep=time.sleep) -> dict:
     """One answer. Free-tier quotas are per model and small (20 requests a day on Flash), and new models
     are often overloaded (503), so each model gets a few tries with backoff on per-minute 429 and 5xx,
-    then the next model in P.MODELS is used; a model out of daily quota is skipped for the rest of the run.
+    then the next model in P.MODELS is used; a model out of daily quota is skipped for the rest of the run,
+    one that stayed overloaded is tried last until it answers again.
     Raises the last error when every model fails."""
     from google.genai import types
     cfg = types.GenerateContentConfig(response_mime_type="application/json",
                                       response_schema=RESPONSE_SCHEMA, temperature=0)
     parts = [types.Part.from_bytes(data=video, mime_type="video/mp4"), prompt]
     last: Exception | None = None
-    for model in [m for m in P.MODELS if m not in _exhausted]:
+    usable = [m for m in P.MODELS if m not in _exhausted]
+    for model in [m for m in usable if m not in _overloaded] + [m for m in usable if m in _overloaded]:
         for attempt in range(P.MAX_RETRIES):
             try:
                 resp = client.models.generate_content(model=model, contents=parts, config=cfg)
+                _overloaded.discard(model)
                 return {**clean_answer(json.loads(resp.text)), "model": model}
             except Exception as err:                    # noqa: BLE001 (SDK error types vary by version)
                 last = err
@@ -178,6 +182,8 @@ def ask_gemini(client, video: bytes, prompt: str, sleep=time.sleep) -> dict:
                     print(f"  {model}: daily free quota used up, next model")
                     break
                 if _code(err) not in (429, 500, 502, 503, 504) or attempt == P.MAX_RETRIES - 1:
+                    if _code(err) in (500, 502, 503, 504):
+                        _overloaded.add(model)
                     print(f"  {model}: {_code(err) or type(err).__name__}, next model")
                     break
                 wait = P.BACKOFF_S * 2 ** attempt

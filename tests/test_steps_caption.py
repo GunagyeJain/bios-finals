@@ -75,6 +75,7 @@ ANSWER = {"verb": "fasten", "object": "screw", "hand": "right", "caption": "righ
 @pytest.fixture(autouse=True)
 def fresh_quota_state(monkeypatch):
     monkeypatch.setattr(cap, "_exhausted", set())
+    monkeypatch.setattr(cap, "_overloaded", set())
     monkeypatch.setattr(P, "MODELS", ("model-a", "model-b"))
 
 
@@ -187,3 +188,11 @@ def test_mocked_gemini_columns_verb_list_and_cache(fixture_clip, monkeypatch):
 
 def config_cache_files(_clip):
     return config.GEMINI_CACHE.glob("*.json")
+
+
+def test_overloaded_model_moves_to_the_back_for_later_windows():
+    models = ByModel({"model-a": [Overloaded()] * P.MAX_RETRIES, "model-b": [ANSWER, ANSWER]})
+    client = SimpleNamespace(models=models)
+    cap.ask_gemini(client, b"v", "p", sleep=lambda s: None)          # a overloaded → b answers
+    assert cap.ask_gemini(client, b"v", "p", sleep=lambda s: None)["model"] == "model-b"   # b first now
+    assert models.models == ["model-a"] * P.MAX_RETRIES + ["model-b", "model-b"]
