@@ -17,7 +17,7 @@
 ⛔ **CHECKPOINT G-1** · Show: contact intervals for 1 min of a real clip vs the video; object names right?
 
 ## G3 · SQLite index (1.5 h) · P0
-- [ ] `index/build.py: build()`: DDL from data-schema §3; load every `outputs/*/` (skip `references`); `alerts` = `alerts_steps` + `alerts_safety`; per-clip shares into `clips`. Helper `register_product(kind, name, path, filter, n)` for S4/G4.
+- [x] `index/build.py: build()`: DDL from data-schema §3; load every `outputs/*/` (skip `references`); `alerts` = `alerts_steps` + `alerts_safety`; per-clip shares into `clips`. Helper `register_product(kind, name, path, filter, n)` for S4/G4.
 - Done when: test builds an index from the fixture in a temp dir.
 
 ## G5a · App on fixtures (3 h) · P0
