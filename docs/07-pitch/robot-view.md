@@ -14,7 +14,7 @@ We draw a robot over the worker's hand and colour it by the grab happening right
 | Red | It cannot |
 | Grey | No grab right now, or we can't tell which grip it is |
 
-**3,990 grabs on 40 clips:** a 2-finger gripper can copy 44.5 %. 0.8 % we can't tell.
+**3,990 grabs on 40 clips:** a 2-finger gripper can copy 44.5 %. 0.8 % we can't tell. Most of that 44.5 % is an open hand on a fixed surface, not a pinch.
 
 **Why a buyer cares:** a robotics team with a gripper can filter the export to grabs its hardware can copy, instead of sorting footage by hand.
 
@@ -22,12 +22,13 @@ We draw a robot over the worker's hand and colour it by the grab happening right
 Say these out loud if the slide is shown:
 - **It is a drawing, not a simulation.** The robot follows the human pose. Nothing checks reach, force, collisions or whether a real robot would succeed.
 - **"Can copy" means the grip type matches.** A grip is `2f` (pinch), `5f` (wrap) or `generic` (a touch on a fixed object). A 2-finger gripper copies `2f` and `generic`; a 5-finger hand copies all three. That table is our choice, not a test with a robot.
+- **Green on the 2-finger view rarely means a pinch.** On the 5 clips with contacts on Bhavyam's laptop (an earlier contact run, 388 grabs), the 2-finger robot "can copy" 180: 5 are pinches and 175 are `generic`, of which 131 are a hand on the workbench. So do not say "a 2-finger robot can do 44.5 % of this work". The 40-clip split has not been computed.
 - **The 5-finger figure is not a finding.** 99.2 % is 100 % minus the "can't tell" share, because the 5-finger hand is defined as copying every grip type. For the same reason, the 5-finger view is never red. Do not present it as a result.
 - **The grab data is not validated.** Grabs have no human labels yet. They come from object boxes the detector scores low (median 0.15 on the 3 demo clips), and the audio cross-check was no better than random. Treat 44.5 % as what our rule outputs, not a measured capability.
 - **It grades grabs, never workers.**
 
 ## Speaker notes (20 seconds)
-"This came from Mytron's feedback. Here the same hand data is drawn as a robot. Green means this robot type could copy the grab, red means it couldn't, and grey means no grab or we can't tell. With a 2-finger gripper, our rule says a little under half of grabs are copyable. That's a rule on grip type, not a robot test, and we haven't checked the grabs against human labels yet."
+"This came from Mytron's feedback. Here the same hand data is drawn as a robot. Green means this robot type could copy the grab, red means it couldn't, and grey means no grab or we can't tell. With a 2-finger gripper, our rule says a little under half of grabs are copyable, but most of those are a hand pressing on a surface, not a pinch. That's a rule on grip type, not a robot test, and we haven't checked the grabs against human labels yet."
 
 ## If a judge asks
 **Did you test this on a robot?**
@@ -40,8 +41,8 @@ We don't yet. It depends on grabs we have not labelled by hand. The next step is
 Because we defined it as able to copy every grip type we detect. It shows the limit of the rule. It says nothing about how good a 5-finger hand is.
 
 **Why is a touch on a machine counted as copyable?**
-`generic` means a touch with no specific grip, such as pressing or resting on a fixed object. We count it as copyable by both robots, and that is an assumption.
+`generic` means a touch with no specific grip, such as pressing or resting on a fixed object. We count it as copyable by both robots, and that is an assumption. It makes up nearly all of the 2-finger green, and a hand on a fixed object also lands here when its keypoints are missing.
 
 ## For the deck and demo (Shefali, Gunagye)
-- The demo script has no Robot view beat yet. If it goes in, use the 2-finger view: the 5-finger view has no red.
+- The demo script has no Robot view beat yet. If it goes in, use the 2-finger view: the 5-finger view has no red. Show a red moment (a wrap), because green there is mostly a hand on a bench.
 - Render on the demo laptop: `python -m egovision.products.robot_overlay --clip <clip>`. It writes both views in about one pass.
