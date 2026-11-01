@@ -1,6 +1,6 @@
 # Where it fails
 
-_Generated 2026-11-01 02:06 by `scripts/where_it_fails.py` from 282 hand-labelled hands on 3 clips. Do not edit by hand; re-run the script._
+_Generated 2026-11-01 05:44 by `scripts/where_it_fails.py` from 282 hand-labelled hands on 3 clips. Do not edit by hand; re-run the script._
 
 All labelled hands, final pipeline: 66 % found, 75 % of points on found hands within 20 % of the box. Labelled frames lean towards hard moments on purpose, and a hand can count in several rows.
 
