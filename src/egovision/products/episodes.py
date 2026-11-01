@@ -62,12 +62,14 @@ def task_of(a: float, b: float, steps: pd.DataFrame, contacts: pd.DataFrame) -> 
 
 
 def select(eps: pd.DataFrame, factories: list[str] | None = None, grips: list[str] | None = None,
-           task_contains: str = "", robot: str | None = None) -> pd.DataFrame:
+           task_contains: str = "", robot: str | None = None, clips: list[str] | None = None) -> pd.DataFrame:
     """Filter planned episodes. Cheap, so the Export page plans once per light and filters on every change.
     robot='2f' or '5f' keeps only episodes whose every grab that robot hand can copy."""
     keep = pd.Series(True, index=eps.index)
     if factories:
         keep &= eps["factory"].isin(factories)
+    if clips:
+        keep &= eps["clip"].isin(clips)
     if grips:
         keep &= eps["grip_types"].map(lambda g: bool(set(grips) & set(g)))
     if robot:

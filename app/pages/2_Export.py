@@ -41,8 +41,10 @@ grips = c4.multiselect("Grip", ["2f", "5f", "generic", "unsure"], placeholder="A
 robot = c5.selectbox("Robot hand", [None, "2f", "5f"], format_func={None: "Any", "2f": "2-finger can copy",
                                                                    "5f": "5-finger can copy"}.get)
 task = c6.text_input("Task contains", placeholder="e.g. fasten")
+clips = st.multiselect("Clips", lib["clip"].tolist(), placeholder="All clips that pass the filters above")
 
-eps = select(planned(light, config.INDEX_DB.stat().st_mtime), factories or None, grips or None, task, robot)
+eps = select(planned(light, config.INDEX_DB.stat().st_mtime), factories or None, grips or None, task, robot,
+             clips or None)
 secs = float((eps["t_end"] - eps["t_start"]).sum()) if not eps.empty else 0.0
 fps = 15.0
 kpi_strip([
@@ -77,7 +79,7 @@ if build:
     with st.spinner(f"Writing exports/{name} (blurring faces in every episode video)…"):
         try:
             st.session_state.last_export = export(name.strip(), light, factories or None, grips or None, task,
-                                                  robot=robot)
+                                                  robot=robot, clips=clips or None)
         except ValueError as e:
             st.error(str(e))
 

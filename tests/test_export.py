@@ -106,3 +106,8 @@ def test_export_refuses_names_that_are_not_plain_folder_names(bad):
     from egovision.products.export import export
     with pytest.raises(ValueError, match="Dataset name"):
         export(bad)
+
+
+def test_select_by_clip():
+    eps = pd.DataFrame({"clip": ["a", "b"], "factory": ["F", "F"], "task": ["x", "y"], "grip_types": [[], []]})
+    assert list(ep.select(eps, clips=["b"])["clip"]) == ["b"]

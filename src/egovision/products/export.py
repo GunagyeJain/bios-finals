@@ -21,7 +21,7 @@ from egovision.io.video import H264Writer
 from egovision.schema import SIDES, ClipPaths, read_hands, read_meta
 
 from . import datasheet
-from .episodes import plan
+from .episodes import plan, select
 
 VIDEO_WIDTH = 640
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,47}")    # the name becomes a folder that a rebuild deletes
@@ -133,7 +133,8 @@ def _info(name: str, eps: list[dict], fps: float, light: str, filters: dict) -> 
 
 
 def export(name: str, light: str = "green", factories: list[str] | None = None, grips: list[str] | None = None,
-           task_contains: str = "", redact: Callable | None = None, robot: str | None = None) -> dict:
+           task_contains: str = "", redact: Callable | None = None, robot: str | None = None,
+           clips: list[str] | None = None) -> dict:
     """Write exports/<name>/ and register it in the index. Returns the numbers the Export page shows."""
     if not NAME.fullmatch(name):
         raise ValueError("Dataset name: letters, digits, - and _ only (up to 48), starting with a letter or digit.")
@@ -142,6 +143,8 @@ def export(name: str, light: str = "green", factories: list[str] | None = None, 
     tables = _tables()
     eps = plan(tables["clips"], tables["segments"], tables["steps"], tables["contacts"], light, factories,
                grips, task_contains, robot)
+    if clips:
+        eps = select(eps, clips=clips)
     if eps.empty:
         raise ValueError("No episode matches these filters (needs a usable stretch of at least 3 s).")
     root = config.EXPORTS / name
@@ -155,7 +158,7 @@ def export(name: str, light: str = "green", factories: list[str] | None = None, 
     fps = float(read_meta(ClipPaths(episodes[0]["clip"]).meta)["fps"]) / int(
         read_meta(ClipPaths(episodes[0]["clip"]).meta).get("step", config.FRAME_STEP))
     filters = {"light": light, "factories": factories or [], "grips": grips or [], "task_contains": task_contains,
-               "robot": robot or ""}
+               "robot": robot or "", "clips": clips or []}
     (root / "meta").mkdir(parents=True, exist_ok=True)
     info = _info(name, episodes, fps, light, filters)
     (root / "meta" / "info.json").write_text(json.dumps(json.loads(_json(info)), indent=2), encoding="utf-8")
