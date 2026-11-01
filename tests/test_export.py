@@ -84,3 +84,25 @@ def test_robot_filter_keeps_only_copyable_grabs():
     only = ep.plan(clips, seg, steps, contacts, "green", robot="2f")
     assert only[["t_start", "t_end"]].values.tolist() == [[0.0, 6.0]]
     assert len(ep.plan(clips, seg, steps, contacts, "green", robot="5f")) == 2
+
+
+def test_select_filters_planned_episodes_without_replanning():
+    eps = pd.DataFrame({"clip": ["a", "b", "c"], "factory": ["F1", "F2", "F1"], "t_start": [0.0] * 3,
+                        "t_end": [4.0] * 3, "task": ["pick part", "handle box", "pick screw"],
+                        "grip_types": [["2f"], ["5f"], []]})
+    assert list(ep.select(eps, factories=["F1"])["clip"]) == ["a", "c"]
+    assert list(ep.select(eps, task_contains="PICK")["clip"]) == ["a", "c"]
+    assert list(ep.select(eps, grips=["5f"])["clip"]) == ["b"]
+    assert list(ep.select(eps, robot="2f")["clip"]) == ["a"]
+
+
+def test_catch_all_verb_becomes_handle():
+    steps = pd.DataFrame({"start_s": [0.0], "end_s": [5.0], "verb": ["other"], "object": ["workbench"]})
+    assert ep.task_of(0.0, 5.0, steps, pd.DataFrame()) == "handle workbench"
+
+
+@pytest.mark.parametrize("bad", ["..", "../x", "a/b", "a\b", "", " x", "-x"])
+def test_export_refuses_names_that_are_not_plain_folder_names(bad):
+    from egovision.products.export import export
+    with pytest.raises(ValueError, match="Dataset name"):
+        export(bad)

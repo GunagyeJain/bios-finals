@@ -50,3 +50,16 @@ def test_register_product_works_before_any_build(outputs):
     from egovision.index.build import register_product
     register_product("module", "m1", "exports/m1", {}, 1)
     assert _q("SELECT name FROM products") == [("m1",)]
+
+
+def test_fixtures_stay_out_when_real_clips_exist(outputs):
+    import shutil
+    from egovision.index import query
+    from egovision.index.build import build
+    real = config.OUTPUTS / "REAL-0001-001"
+    shutil.copytree(config.OUTPUTS / "fixture_001", real)
+    for f in real.iterdir():                     # outputs carry their clip name inside; relabel the copy
+        if f.suffix in (".json", ".csv", ".jsonl"):
+            f.write_text(f.read_text(encoding="utf-8").replace("fixture_001", real.name), encoding="utf-8")
+    build()
+    assert query.library()["clip"].tolist() == [real.name]

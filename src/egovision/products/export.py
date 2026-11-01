@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Callable
@@ -23,6 +24,7 @@ from . import datasheet
 from .episodes import plan
 
 VIDEO_WIDTH = 640
+NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,47}")    # the name becomes a folder that a rebuild deletes
 
 
 def _json(o) -> str:
@@ -133,6 +135,8 @@ def _info(name: str, eps: list[dict], fps: float, light: str, filters: dict) -> 
 def export(name: str, light: str = "green", factories: list[str] | None = None, grips: list[str] | None = None,
            task_contains: str = "", redact: Callable | None = None, robot: str | None = None) -> dict:
     """Write exports/<name>/ and register it in the index. Returns the numbers the Export page shows."""
+    if not NAME.fullmatch(name):
+        raise ValueError("Dataset name: letters, digits, - and _ only (up to 48), starting with a letter or digit.")
     if redact is None:
         from egovision.quality.redact import redact_frame as redact
     tables = _tables()

@@ -9,13 +9,24 @@ import pandas as pd
 import streamlit as st
 
 from components import kpi_strip, mmss, num, title
+from egovision import config
 from egovision.index import query
+from egovision.products.episodes import select
 from egovision.products.export import export, preview
+
+SCAN_MIN_PER_CLIP = 2.0     # measured: the whole-clip face scan plus decode, about 2 min per 3-min clip
+LONG_BUILD_MIN = 15
 
 if not query.has_index():
     title("Export", "No clips indexed yet.")
     st.html('<div class="ev-empty">Process and index clips first; the dataset is built from the index.</div>')
     st.stop()
+
+@st.cache_data(show_spinner="Planning episodes from the index…")
+def planned(light: str, index_mtime: float):
+    """Every episode for this light; filters only trim this table, so changing them is instant."""
+    return preview(light)
+
 
 lib = query.library()
 title("Export", "A robot dataset from usable footage only: episodes of at least 3 s, cut at step boundaries, "
@@ -31,7 +42,7 @@ robot = c5.selectbox("Robot hand", [None, "2f", "5f"], format_func={None: "Any",
                                                                    "5f": "5-finger can copy"}.get)
 task = c6.text_input("Task contains", placeholder="e.g. fasten")
 
-eps = preview(light, factories or None, grips or None, task, robot)
+eps = select(planned(light, config.INDEX_DB.stat().st_mtime), factories or None, grips or None, task, robot)
 secs = float((eps["t_end"] - eps["t_start"]).sum()) if not eps.empty else 0.0
 fps = 15.0
 kpi_strip([
@@ -53,7 +64,14 @@ else:
                               length=lambda d: (d["t_end"] - d["t_start"]).map(lambda s: f"{s:.1f} s"),
                               grips=lambda d: d["grip_types"].map(lambda g: ", ".join(g) or "—"))
     left.dataframe(show[["clip", "start", "end", "length", "task", "grips"]], hide_index=True, width="stretch")
+n_clips = eps["clip"].nunique() if not eps.empty else 0
+est = n_clips * SCAN_MIN_PER_CLIP
 build = right.button("Build dataset", type="primary", disabled=eps.empty or not name.strip(), width="stretch")
+if n_clips:
+    right.caption(f"About {est:.0f} min for {n_clips} clip{'s' if n_clips > 1 else ''} (faces are found and "
+                  f"blurred in each one). The page waits until it is done.")
+if est > LONG_BUILD_MIN:
+    right.warning(f"That is a long build. Narrow the filters (one factory, or a task) for a demo set.")
 
 if build:
     with st.spinner(f"Writing exports/{name} (blurring faces in every episode video)…"):

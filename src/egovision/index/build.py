@@ -133,6 +133,8 @@ def build() -> None:
         config.INDEX_DB.unlink()
     clips = sorted(d.name for d in config.OUTPUTS.iterdir()
                    if d.is_dir() and d.name != config.REFERENCES.name and (d / "meta.json").exists())
+    real = [c for c in clips if not c.startswith("fixture")]
+    clips = real or clips       # synthetic fixtures only fill an index that has no real clips (tests, empty laptop)
     db = _connect()
     try:
         with db:
