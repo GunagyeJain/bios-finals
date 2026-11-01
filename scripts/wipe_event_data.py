@@ -18,7 +18,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from egovision import config  # noqa: E402  (respects EGO_DATA / EGO_CLIPS / EGO_OUTPUTS)
 
 LOCAL = [config.DATA_DIR, config.CLIPS_DIR, config.OUTPUTS, config.EXPORTS, ROOT / "eval" / "frames",
-         config.GEMINI_CACHE]
+         config.GEMINI_CACHE,
+         ROOT / "app" / "static"]   # the player's hard links/copies of rendered and preview videos
 
 
 def wipe_local(delete: bool) -> None:

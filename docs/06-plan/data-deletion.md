@@ -4,9 +4,10 @@ Organisers' data-use rule: delete **every copy** of the data, including uploads 
 **When:** 1 Nov, right after judging (~11:15), before anyone leaves the venue. **Owner:** Gunagye checks every row is ticked.
 
 ## 1. Every laptop (each member, on their own machine)
-- [ ] `python scripts/wipe_event_data.py` (dry run), check the list, then `--yes`. Removes `data/egohack-data/`, `outputs/`, `exports/`, `eval/frames/`, `gemini_cache/`.
+- [ ] `python scripts/wipe_event_data.py` (dry run), check the list, then `--yes`. Removes `data/egohack-data/`, `outputs/`, `exports/`, `eval/frames/`, `gemini_cache/`, `app/static/` (the player's video copies; hard links survive deleting `outputs/`).
 - [ ] Downloaded archive(s) of the clips (Downloads folder, desktop, USB stick) deleted.
 - [ ] Recycle Bin / Trash emptied.
+- [ ] Demo video and any screen recordings or exported frames outside the repo (e.g. the demo cut's working folder) deleted; keep only the copy submitted to the organisers.
 - [ ] Clips, frames or screenshots in phone galleries or team chat (WhatsApp etc.) deleted.
 
 | Member | Laptop | Chat/phone | Time |
