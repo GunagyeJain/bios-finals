@@ -87,7 +87,7 @@ done = st.session_state.get("last_export")
 if done:
     root = Path(done["path"])
     st.html(f'<div class="ev-panel" style="margin-top:24px"><h3>Built {escape(done["name"])}</h3>'
-            f'<p style="color:#8a8c92;margin:0"><span class="ev-num">{done["episodes"]}</span> episodes · '
+            f'<p style="color:#8b96ab;margin:0"><span class="ev-num">{done["episodes"]}</span> episodes · '
             f'<span class="ev-num">{done["frames"]:,}</span> frames · <span class="ev-num">{mmss(done["seconds"])}'
             f'</span> · <span class="ev-num">{done["red_seconds"]:.0f}</span> red seconds · '
             f'<code>{escape(str(root))}</code></p></div>')

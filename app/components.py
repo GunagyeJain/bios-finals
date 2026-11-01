@@ -12,8 +12,8 @@ import streamlit as st
 CSS = Path(__file__).with_name("style.css")
 LIGHT = {"green": "#44a282", "yellow": "#d9a441", "red": "#e5566f"}
 LIGHT_WORD = {"green": "Usable", "yellow": "Check", "red": "Unusable"}
-HAND = {"left": "#4a8ad6", "right": "#f2f2f3"}
-MUTED, RULE, GRID, ACCENT, NONE = "#8a8c92", "#1b1a1f", "#2b2b2e", "#4a8ad6", "#2c2c30"
+HAND = {"left": "#7b8cff", "right": "#f2f2f3"}
+MUTED, RULE, GRID, ACCENT, NONE = "#8b96ab", "#1c2330", "#232b3a", "#7b8cff", "#2a3242"
 ALERT = {"safety": "#e5566f", "step_missing": "#d9a441", "step_order": "#d9a441", "step_extra": "#8a8c92"}
 ROWS = ["Light", "Left", "Right", "Steps", "Alerts"]
 MONO = "IBM Plex Mono, monospace"
@@ -192,7 +192,7 @@ def event_timeline(d: dict[str, pd.DataFrame], duration: float, t: float) -> go.
     fig.update_layout(barmode="overlay", height=212, margin=dict(l=0, r=8, t=4, b=0), bargap=0.3,
                       clickmode="event+select", dragmode=False, plot_bgcolor="rgba(0,0,0,0)",
                       paper_bgcolor="rgba(0,0,0,0)", font=dict(family="Public Sans, sans-serif", color=MUTED, size=12),
-                      hoverlabel=dict(bgcolor="#212023", bordercolor="#212023", font=dict(family=MONO, color="#fff", size=12)))
+                      hoverlabel=dict(bgcolor="#1a2230", bordercolor="#1a2230", font=dict(family=MONO, color="#fff", size=12)))
     fig.update_yaxes(categoryorder="array", categoryarray=ROWS[::-1], fixedrange=True, showgrid=True,
                      gridcolor=RULE, ticklabelstandoff=12, zeroline=False)
     fig.update_xaxes(range=[0, duration], fixedrange=True, tickvals=ticks, ticktext=[mmss(v) for v in ticks],

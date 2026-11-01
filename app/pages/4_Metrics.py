@@ -50,7 +50,7 @@ def fmt(v, share=True, unit=""):
 def bars(rows: list[tuple[str, float | None, float | None]]) -> go.Figure:
     labels = [r[0] for r in rows]
     fig = go.Figure()
-    for name, idx, colour in (("Baseline", 1, "#3a3a3e"), ("Ours", 2, "#4a8ad6")):
+    for name, idx, colour in (("Baseline", 1, "#34405a"), ("Ours", 2, "#7b8cff")):
         vals = [r[idx] for r in rows]
         fig.add_bar(y=labels, x=vals, orientation="h", name=name, marker_color=colour,
                     text=[fmt(v) for v in vals], textposition="outside", textfont=dict(family=MONO, size=12),
@@ -106,14 +106,14 @@ kpi_strip([kpi("detection_recall", "Hands found"), kpi("lr_accuracy", "Left/righ
 left, right = st.columns([3, 2], gap="medium")
 with left, st.container(border=True):
     st.html('<h3 style="font-size:16px;font-weight:600;margin:0">Baseline vs ours</h3>'
-            '<p style="color:#8a8c92;font-size:12px;margin:2px 0 0">MediaPipe alone, then with tracking, side '
+            '<p style="color:#8b96ab;font-size:12px;margin:2px 0 0">MediaPipe alone, then with tracking, side '
             'voting, gap fill and smoothing. Same labelled frames. Keypoints count a missed hand as wrong; the '
             'last row scores found hands only, so finding hard hands lowers it.</p>')
     st.plotly_chart(bars([(lab, weighted(ms, "baseline", k), weighted(ms, "ours", k)) for k, lab in SHARES]),
                     width="stretch", config={"displayModeBar": False})
 with right, st.container(border=True):
     st.html('<h3 style="font-size:16px;font-weight:600;margin:0">Does the light predict accuracy?</h3>'
-            '<p style="color:#8a8c92;font-size:12px;margin:2px 0 0">Keypoints within 20 % (ours) on frames graded '
+            '<p style="color:#8b96ab;font-size:12px;margin:2px 0 0">Keypoints within 20 % (ours) on frames graded '
             'green, yellow and red. If the light is right, red should score lowest.</p>')
     rows = [(li, weighted(ms, "per_light", li, "ours", "pck_0.2"),
              sum((m.get("per_light", {}).get(li, {}) or {}).get("n", 0) for m in ms)) for li in LIGHT]
@@ -144,7 +144,7 @@ with check, st.container(border=True):
             f'<div class="k">Labels started from a suggestion</div><div class="m">{fmt(pre)}</div>'
             f'<div class="k">Accuracy on hand-made labels</div><div class="m">{fmt(man)}</div>'
             f'<div class="k">Accuracy on suggested labels</div><div class="m">{fmt(pf)}</div></div>'
-            '<p style="color:#8a8c92;font-size:12px;margin:8px 0 0">Every label was checked by a person. If the '
+            '<p style="color:#8b96ab;font-size:12px;margin:8px 0 0">Every label was checked by a person. If the '
             'two accuracies match, the suggestions did not bias the numbers.</p>')
 
 fails = [{"clip": m["clip"], "time": mmss(f.get("t", 0)), "what failed": f.get("what", ""), "why": f.get("why", "")}

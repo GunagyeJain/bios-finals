@@ -1,12 +1,14 @@
-/* App theme (ui-design.md §1). Tokens: data-terminal dark. Figures in IBM Plex Mono, text in Public Sans.
-   The accent is only ever a 1px selection line; colour lives on data (light grades, hands). */
+/* App theme (ui-design.md §1). "Control room" dark: layered navy surfaces, one indigo brand accent for
+   selection and the primary action, display type in Space Grotesk, figures in IBM Plex Mono. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
 :root {
-  --ground: #171719; --surface: #131217; --raised: #212023;
-  --border: #222224; --rule: #1b1a1f; --control: #3a3a3e;
-  --text: #ffffff; --muted: #8a8c92; --soft: #bdbdc0;
-  --accent: #4a8ad6;
+  --ground: #0b0e14; --surface: #121823; --raised: #1a2230;
+  --border: #232b3a; --rule: #1c2330; --control: #34405a;
+  --text: #f4f6fb; --muted: #8b96ab; --soft: #c3cbda;
+  --accent: #7b8cff; --accent-soft: rgba(123, 140, 255, .14);
+  --display: "Space Grotesk", "Public Sans", system-ui, sans-serif;
   --green: #44a282; --yellow: #d9a441; --red: #e5566f;
-  --left: #4a8ad6; --right: #f2f2f3;
+  --left: #7b8cff; --right: #f2f2f3;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
   --gap: 24px; --pad: 20px; --radius: 6px;
 }
@@ -163,3 +165,70 @@ video { max-height: min(46vh, 430px); }
 [data-testid="stBaseButton-primary"]:hover { background: #e6e6e6; color: #000000; }
 [data-testid="stBaseButton-primary"]:disabled { background: var(--raised); }
 [data-testid="stBaseButton-primary"]:disabled p { color: var(--muted); }
+
+
+/* =====================================================================================================
+   Control-room layer: depth, hierarchy and the brand accent. Later rules win over the base above.
+   ===================================================================================================== */
+.stApp { background:
+  radial-gradient(1200px 500px at 85% -10%, rgba(123, 140, 255, .10), transparent 60%),
+  radial-gradient(900px 400px at -10% 0%, rgba(68, 162, 130, .06), transparent 60%), var(--ground); }
+
+/* top bar: brand left, nav as pills */
+.st-key-topbar { position: sticky; top: 0; z-index: 50; margin: -20px -32px 0; padding: 10px 32px;
+  background: rgba(11, 14, 20, .78); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+.ev-topbar-rule { display: none; }
+.ev-brand b { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.ev-brand span { padding-left: 10px; margin-left: 2px; border-left: 1px solid var(--border); }
+.ev-mark { width: 28px; height: 28px; border: 0; border-radius: 8px;
+  background: linear-gradient(135deg, #7b8cff, #44a282); box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset; }
+.ev-nav-active { height: 34px; line-height: 34px; padding: 0 16px; border-radius: 999px; box-shadow: none;
+  background: var(--accent-soft); color: #dfe4ff; font-weight: 600; }
+[data-testid="stPageLink"] a { height: 34px; padding: 0 16px; border-radius: 999px; }
+[data-testid="stPageLink"] a:hover { background: var(--raised) !important; }
+
+/* title: display type, real scale contrast */
+.ev-title { margin-top: 28px; }
+.ev-title h1 { font-family: var(--display); font-size: 38px; line-height: 44px; font-weight: 700;
+  letter-spacing: -.02em; }
+.ev-title p { font-size: 15px; margin-top: 8px; max-width: 820px; }
+
+/* KPIs: separate cards, big figures, a coloured edge on the first two */
+.ev-kpis { gap: 12px; background: none; border: 0; margin: 24px 0 28px; }
+.ev-kpi, .ev-kpi:first-child { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 14px;
+  background: linear-gradient(180deg, var(--raised), var(--surface)); position: relative; overflow: hidden; }
+.ev-kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: var(--control); }
+.ev-kpi:nth-child(1)::before { background: var(--accent); }
+.ev-kpi:nth-child(2)::before { background: var(--green); }
+.ev-kpi .l { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); font-weight: 600; }
+.ev-kpi .v { font-family: var(--display); font-size: 32px; line-height: 40px; font-weight: 600; margin-top: 8px;
+  letter-spacing: -.01em; }
+.ev-kpi .s { margin-top: 4px; }
+
+/* panels and tables: rounded, layered */
+.ev-panel { border-radius: 14px; padding: 18px 22px; box-shadow: 0 1px 0 rgba(255,255,255,.03) inset,
+  0 12px 32px rgba(0,0,0,.25); }
+.ev-panel h3 { font-family: var(--display); font-size: 18px; }
+.ev-table td { height: 46px; }
+.ev-table tr.grp td b { font-family: var(--display); font-size: 16px; }
+.ev-table tr.row:hover td { background: var(--accent-soft); }
+.ev-strip { height: 12px; border-radius: 4px; gap: 2px; background: #222a38; }
+[data-testid="stDataFrame"], [data-testid="stTable"] { border-radius: 12px; overflow: hidden; }
+
+/* controls */
+[data-testid="stTabs"] [data-baseweb="tab-highlight"] { height: 2px; }
+[data-testid="stTabs"] [aria-selected="true"] p { font-weight: 600; }
+[data-testid="stRadioOption"][data-selected="true"] { box-shadow: inset 0 -2px 0 var(--accent); }
+[data-baseweb="select"] > div, [data-testid="stTextInput"] input { background: var(--surface) !important; }
+[data-testid="stWidgetLabel"] p { color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .06em; font-weight: 600; }
+[data-testid="stBaseButton-primary"] { background: var(--accent); color: #0b0e14; border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(123, 140, 255, .35); }
+[data-testid="stBaseButton-primary"] p { color: #0b0e14; }
+[data-testid="stBaseButton-primary"]:hover { background: #95a3ff; color: #0b0e14; }
+.ev-empty { border-radius: 12px; }
+@media (max-width: 640px) {
+  .st-key-topbar { margin: -12px -16px 0; padding: 8px 16px; }
+  .ev-title h1 { font-size: 28px; line-height: 34px; }
+  .ev-kpi .v { font-size: 24px; line-height: 30px; }
+}
