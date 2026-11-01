@@ -76,3 +76,22 @@ def test_robot_fit_on_fixture_contacts(indexed):
 
 def test_robot_fit_without_contacts_is_none():
     assert query.robot_fit(pd.DataFrame(columns=["grip"]))["2f"] is None
+
+
+def test_factory_scores_shares_reason_and_verdict():
+    lib = pd.DataFrame({"clip": ["a1", "a2", "b1"], "factory": ["A", "A", "B"], "duration_s": [10.0, 10.0, 10.0],
+                        "hands_found_share": [0.9, 0.7, 0.2]})
+    seg = pd.DataFrame({"clip": ["a1", "a2", "a2", "b1", "b1"], "t_start": [0, 0, 8, 0, 3],
+                        "t_end": [10, 8, 10, 3, 10], "light": ["green", "green", "red", "yellow", "red"],
+                        "reasons": ["", "", "blur", "fast_head", "hands_out;blur"]})
+    sc = query.factory_scores(lib, seg)
+    a, b = sc.iloc[0], sc.iloc[1]
+    assert a["factory"] == "A" and a["green"] == pytest.approx(0.9) and a["verdict"] == "valuable"
+    assert a["top_reason"] == "blur" and a["hands"] == pytest.approx(0.8)
+    assert b["green"] == 0 and b["red"] == pytest.approx(0.7) and b["verdict"] == "poor"
+    assert b["top_reason"] in ("hands_out", "blur") and b["top_reason_s"] == pytest.approx(7.0)
+
+
+def test_verdict_thresholds():
+    assert [query.verdict(v) for v in (0.7, 0.69, 0.4, 0.39, None)] == \
+        ["valuable", "fix capture", "fix capture", "poor", "not graded"]

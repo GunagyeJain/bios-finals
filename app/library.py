@@ -4,7 +4,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from components import clip_table, kpi_strip, num, pct, title
+from components import clip_table, factory_scorecard, kpi_strip, num, pct, title
 from egovision.index import query
 
 if not query.has_index():
@@ -42,6 +42,9 @@ kpi_strip([
     ("2-finger robot", num(pct(fit["2f"])), "of grabs it can copy (pinch, press)"),
     ("5-finger robot", num(pct(fit["5f"])), f"of grabs it can copy · {pct(fit['unsure'])} unsure"),
 ])
+
+factory_scorecard(query.factory_scores(lib, segments), query.VALUABLE, query.FIX_CAPTURE)
+st.html('<h2 class="ev-h2">Clips</h2>')
 
 f1, f2, f3, _ = st.columns([2, 2, 2, 3])
 factory = f1.selectbox("Factory", ["All factories"] + sorted(lib["factory"].unique()), label_visibility="collapsed")

@@ -94,6 +94,43 @@ def strip(segments: pd.DataFrame, duration: float) -> str:
     return f'<div class="ev-strip">{"".join(cells)}</div>'
 
 
+# ---------- factory scorecard ----------
+REASON = {"hands_out": ("hands out of view", "Tilt the camera down so both hands stay in frame."),
+          "fast_head": ("fast head movement", "Ask workers to keep their head steadier while working."),
+          "blur": ("blur", "Clean the lens; add light so the shutter can be faster."),
+          "camera_angle": ("camera angle", "Re-seat the camera so it points at the work surface."),
+          "edge_cut": ("hands cut at the frame edge", "Tilt the camera down a little."),
+          "dark": ("too dark", "Add light at the workstation."),
+          "frozen": ("frozen frames", "Check the camera's recording settings.")}
+VERDICT = {"valuable": ("green", "Valuable"), "fix capture": ("yellow", "Fix capture"), "poor": ("red", "Poor"),
+           "not graded": ("none", "Not graded")}
+
+
+def factory_scorecard(scores: pd.DataFrame, valuable: float, fix: float) -> None:
+    """One card per factory: usable share, light bar, hands found, the main reason for red seconds and what to
+    change at capture. Answers: is this factory's footage worth having?"""
+    cards = []
+    for r in scores.itertuples():
+        tone, word = VERDICT[r.verdict]
+        bar = "".join(f'<span style="flex:{getattr(r, li) or 0:.3f};background:{LIGHT[li]}"></span>'
+                      for li in ("green", "yellow", "red")) if r.graded_s else ""
+        label, advice = REASON.get(r.top_reason, (str(r.top_reason or "none").replace("_", " "), ""))
+        issue = (f'<div class="fs-issue"><b>{escape(label)}</b> · <span class="ev-num">{r.top_reason_s / 60:.0f}'
+                 f'</span> min red<br><span>{escape(advice)}</span></div>') if r.top_reason else             '<div class="fs-issue"><b>No unusable stretches</b></div>'
+        cards.append(
+            f'<div class="fs-card fs-{tone}"><div class="fs-head"><b>{escape(r.factory)}</b>'
+            f'<span class="ev-pill {tone}">{word}</span></div>'
+            f'<div class="fs-score"><span class="ev-num">{pct(r.green)}</span><small>usable</small></div>'
+            f'<div class="ev-strip fs-bar">{bar}</div>'
+            f'<div class="fs-meta"><span><span class="ev-num">{pct(r.hands)}</span> hands found</span>'
+            f'<span><span class="ev-num">{r.clips}</span> clips · <span class="ev-num">{r.seconds / 60:.0f}</span>'
+            f' min</span></div>{issue}</div>')
+    st.html(f'<div class="fs-title"><h2 class="ev-h2">Factory scorecard</h2><p>Is each factory&#39;s footage worth '
+            f'having? Share of graded seconds that are usable: <b>{valuable:.0%}</b> or more is valuable, '
+            f'<b>{fix:.0%}</b> to {valuable:.0%} needs a capture fix, below {fix:.0%} is poor.</p></div>'
+            f'<div class="fs-grid">{"".join(cards)}</div>')
+
+
 # ---------- library ----------
 def clip_table(lib: pd.DataFrame, segments: pd.DataFrame, review_url: str) -> None:
     head = ('<tr><th>Clip</th><th>Quality over time</th><th class="r">Usable</th><th class="r">Hands</th>'

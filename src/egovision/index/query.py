@@ -32,8 +32,41 @@ def library() -> pd.DataFrame:
 
 
 def all_segments() -> pd.DataFrame:
-    """Light segments of every clip, for the Library's quality strips."""
-    return sql("SELECT clip, t_start, t_end, light FROM segments ORDER BY clip, t_start")
+    """Light segments of every clip, for the Library's quality strips and the factory scorecard."""
+    return sql("SELECT clip, t_start, t_end, light, reasons FROM segments ORDER BY clip, t_start")
+
+
+VALUABLE, FIX_CAPTURE = 0.70, 0.40      # usable share of graded seconds: at or above = valuable / fix capture / poor
+
+
+def verdict(green: float | None) -> str:
+    if green is None or pd.isna(green):
+        return "not graded"
+    return "valuable" if green >= VALUABLE else "fix capture" if green >= FIX_CAPTURE else "poor"
+
+
+def factory_scores(lib: pd.DataFrame, segments: pd.DataFrame) -> pd.DataFrame:
+    """One row per factory: is its footage worth having? Shares of graded seconds, mean hands found, the reason
+    behind most red seconds, and a verdict from VALUABLE / FIX_CAPTURE. Best factory first."""
+    seg = segments.merge(lib[["clip", "factory"]], on="clip")
+    seg = seg.assign(sec=seg["t_end"] - seg["t_start"])
+    rows = []
+    for f, clips in lib.groupby("factory"):
+        s = seg[seg["factory"] == f]
+        graded = float(s["sec"].sum())
+        share = {li: float(s.loc[s["light"] == li, "sec"].sum()) / graded if graded else None
+                 for li in ("green", "yellow", "red")}
+        red = s[s["light"] == "red"]
+        why = (red.assign(r=red["reasons"].fillna("").str.split(r"[;,]")).explode("r")
+               .assign(r=lambda d: d["r"].str.strip()).query("r != ''").groupby("r")["sec"].sum())
+        rows.append({"factory": f, "clips": len(clips), "seconds": float(clips["duration_s"].sum()),
+                     "graded_s": graded, **share, "hands": clips["hands_found_share"].mean(),
+                     "top_reason": why.idxmax() if len(why) else None,
+                     "top_reason_s": float(why.max()) if len(why) else 0.0,
+                     "verdict": verdict(share["green"])})
+    out = pd.DataFrame(rows, columns=["factory", "clips", "seconds", "graded_s", "green", "yellow", "red", "hands",
+                                      "top_reason", "top_reason_s", "verdict"])
+    return out.sort_values("green", ascending=False, na_position="last").reset_index(drop=True)
 
 
 def kpis(lib: pd.DataFrame) -> dict[str, float | None]:
