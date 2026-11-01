@@ -197,4 +197,18 @@
     else if (e.key === "ArrowLeft") seek(video.currentTime - 5);
     else if (/^[1-4]$/.test(e.key)) setView(D.views[+e.key - 1]);
   });
+
+  // ---------- fit the frame ----------
+  // Streamlit gives the frame a fixed height; on narrow screens the stacked layout is taller and the timeline
+  // would be cut off. The frame is same-origin (srcdoc), so size it to the content.
+  const frame = window.frameElement;
+  if (frame) {
+    const fit = () => {
+      const h = Math.ceil(document.querySelector("main").getBoundingClientRect().height) + 4;
+      frame.style.height = `${h}px`;
+      frame.height = String(h);
+    };
+    new ResizeObserver(fit).observe(document.querySelector("main"));
+    fit();
+  }
 })();

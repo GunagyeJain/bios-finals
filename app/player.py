@@ -58,7 +58,7 @@ def hand_track(clip: str) -> list[list]:
 def payload(clip: str, d: dict, fps: float, duration: float) -> dict:
     p = ClipPaths(clip)
     videos = {key: media_url(clip, p.dir / f"{stem}.mp4") for key, _, stem in VIEWS}
-    source = None if videos["ours"] else media_url(clip, p.video)
+    source = None if videos["ours"] else media_url(clip, p.preview)    # never the raw HEVC file: browsers can't play it
     return {
         "clip": clip, "duration": duration, "fps": fps,
         "views": [{"key": k, "label": lab, "url": videos[k]} for k, lab, _ in VIEWS],

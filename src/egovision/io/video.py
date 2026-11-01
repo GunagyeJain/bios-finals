@@ -34,3 +34,20 @@ class H264Writer:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+def h264_preview(src: Path, dest: Path, width: int = 960, crf: int = 28) -> Path:
+    """Browser-playable copy of a source clip (the camera files are HEVC, which most browsers can't decode).
+    Scaled to `width`, no audio track: voices are personal data and never leave the source file."""
+    import subprocess
+
+    import imageio_ffmpeg
+
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(".part.mp4")
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(src), "-an",
+                    "-vf", f"scale={width}:-2", "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
+                    "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(tmp)], check=True)
+    tmp.replace(dest)
+    return dest

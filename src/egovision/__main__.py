@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
     e = sub.add_parser("export", help="build a robot dataset")
     e.add_argument("--name", required=True)
     e.add_argument("--light", default="green", choices=["green", "yellow"])
+    v = sub.add_parser("preview", help="browser-playable H.264 copy of clips that have no render yet")
+    gv = v.add_mutually_exclusive_group(required=True)
+    gv.add_argument("--clip")
+    gv.add_argument("--all", action="store_true")
     a = ap.parse_args(argv)
 
     if a.cmd == "run":
@@ -85,6 +89,13 @@ def main(argv: list[str] | None = None) -> int:
     elif a.cmd == "index":
         from .index.build import build
         build()
+    elif a.cmd == "preview":
+        from .io.video import h264_preview
+        for c in (config.all_clips() if a.all else [a.clip]):
+            p = ClipPaths(c)
+            if p.render.exists() or p.preview.exists():
+                continue
+            print(f"[{c}] {h264_preview(p.video, p.preview)}")
     elif a.cmd == "export":
         from .products.export import export
         try:

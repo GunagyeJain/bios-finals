@@ -79,6 +79,7 @@ class ClipPaths:
         self.alerts_safety = self.dir / "alerts_safety.csv"
         self.render = self.dir / "render.mp4"
         self.render_baseline = self.dir / "render_baseline.mp4"
+        self.preview = self.dir / "preview.mp4"           # H.264 copy for the browser when there is no render
         self.metrics = self.dir / "metrics.json"
 
     def mkdir(self) -> "ClipPaths":
