@@ -1,6 +1,6 @@
 # Robot view: slide content
 
-_Owner: Bhavyam. Numbers copied from `numbers.md` (generated 2026-11-01 00:09, 9 clips). After the final run, re-run `scripts/pitch_numbers.py` and copy them again._
+_Owner: Bhavyam. Numbers copied from `numbers.md` (generated 2026-11-01 05:44, 40 clips). After the final run, re-run `scripts/pitch_numbers.py` and copy them again._
 Rules: numbers only from `numbers.md`. No real frames in the deck: draw the gripper and the robot hand.
 
 ## Slide text
@@ -14,7 +14,7 @@ We draw a robot over the worker's hand and colour it by the grab happening right
 | Red | It cannot |
 | Grey | No grab right now, or we can't tell which grip it is |
 
-**703 grabs on 9 clips:** a 2-finger gripper can copy 32.3 %. 1.7 % we can't tell.
+**3,990 grabs on 40 clips:** a 2-finger gripper can copy 44.5 %. 0.8 % we can't tell.
 
 **Why a buyer cares:** a robotics team with a gripper can filter the export to grabs its hardware can copy, instead of sorting footage by hand.
 
@@ -22,18 +22,18 @@ We draw a robot over the worker's hand and colour it by the grab happening right
 Say these out loud if the slide is shown:
 - **It is a drawing, not a simulation.** The robot follows the human pose. Nothing checks reach, force, collisions or whether a real robot would succeed.
 - **"Can copy" means the grip type matches.** A grip is `2f` (pinch), `5f` (wrap) or `generic` (a touch on a fixed object). A 2-finger gripper copies `2f` and `generic`; a 5-finger hand copies all three. That table is our choice, not a test with a robot.
-- **The 5-finger figure is not a finding.** 98.3 % is 100 % minus the "can't tell" share, because the 5-finger hand is defined as copying every grip type. For the same reason, the 5-finger view is never red. Do not present it as a result.
-- **The grab data is not validated.** Grabs have no human labels yet. They come from object boxes the detector scores low (median 0.15 on the 3 demo clips), and the audio cross-check was no better than random. Treat 32.3 % as what our rule outputs, not a measured capability.
+- **The 5-finger figure is not a finding.** 99.2 % is 100 % minus the "can't tell" share, because the 5-finger hand is defined as copying every grip type. For the same reason, the 5-finger view is never red. Do not present it as a result.
+- **The grab data is not validated.** Grabs have no human labels yet. They come from object boxes the detector scores low (median 0.15 on the 3 demo clips), and the audio cross-check was no better than random. Treat 44.5 % as what our rule outputs, not a measured capability.
 - **It grades grabs, never workers.**
 
 ## Speaker notes (20 seconds)
-"This came from Mytron's feedback. Here the same hand data is drawn as a robot. Green means this robot type could copy the grab, red means it couldn't, and grey means no grab or we can't tell. With a 2-finger gripper, our rule says about a third of grabs are copyable. That's a rule on grip type, not a robot test, and we haven't checked the grabs against human labels yet."
+"This came from Mytron's feedback. Here the same hand data is drawn as a robot. Green means this robot type could copy the grab, red means it couldn't, and grey means no grab or we can't tell. With a 2-finger gripper, our rule says a little under half of grabs are copyable. That's a rule on grip type, not a robot test, and we haven't checked the grabs against human labels yet."
 
 ## If a judge asks
 **Did you test this on a robot?**
 No. It is a grip-type rule drawn on video. A real test needs a robot or a simulator.
 
-**How do you know the 32 % is right?**
+**How do you know the 44.5 % is right?**
 We don't yet. It depends on grabs we have not labelled by hand. The next step is to label a sample of grabs and measure them.
 
 **Why is the 5-finger robot almost always green?**
