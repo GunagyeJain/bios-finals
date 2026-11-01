@@ -147,7 +147,8 @@ def export(name: str, light: str = "green", factories: list[str] | None = None, 
         eps = select(eps, clips=clips)
     if eps.empty:
         raise ValueError("No episode matches these filters (needs a usable stretch of at least 3 s).")
-    root = config.EXPORTS / name
+    final = config.EXPORTS / name
+    root = config.EXPORTS / f".{name}.building"     # a stopped build never touches the last finished one
     if root.exists():
         shutil.rmtree(root)
     tasks = sorted(eps["task"].unique())
@@ -167,9 +168,12 @@ def export(name: str, light: str = "green", factories: list[str] | None = None, 
         encoding="utf-8")
     (root / "meta" / "tasks.jsonl").write_text(
         "".join(_json({"task_index": i, "task": t}) + "\n" for i, t in enumerate(tasks)), encoding="utf-8")
-    summary = {"name": name, "path": str(root), "episodes": len(episodes), "frames": info["total_frames"],
+    summary = {"name": name, "path": str(final), "episodes": len(episodes), "frames": info["total_frames"],
                "seconds": round(sum(e["t_end"] - e["t_start"] for e in episodes), 1), "tasks": len(tasks),
                "clips": len(info["source_clips"]), "red_seconds": sum(e["red_frames"] for e in episodes) / fps}
     datasheet.write(root, summary, episodes, tables["clips"], filters)
-    register_product("dataset", name, root, filters, len(episodes))
+    if final.exists():
+        shutil.rmtree(final)
+    root.rename(final)
+    register_product("dataset", name, final, filters, len(episodes))
     return summary

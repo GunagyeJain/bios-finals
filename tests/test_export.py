@@ -73,6 +73,20 @@ def test_export_registers_the_dataset(exported):
     assert query.sql("SELECT kind, name, n_items FROM products").values.tolist() == [["dataset", "demo_v1", 2]]
 
 
+def test_a_stopped_rebuild_keeps_the_last_finished_export(exported):
+    from egovision.products.export import export
+    root = config.EXPORTS / "demo_v1"
+
+    def crash(img, keep=None):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        export("demo_v1", "yellow", redact=crash)
+    assert (root / "meta" / "info.json").exists() and (root / "datasheet.md").exists()
+    export("demo_v1", "yellow", redact=lambda img, keep=None: img)
+    assert not (config.EXPORTS / ".demo_v1.building").exists()
+
+
 def test_robot_filter_keeps_only_copyable_grabs():
     clips = pd.DataFrame({"clip": ["c"], "factory": ["f"], "duration_s": [12.0]})
     seg = _seg(["green"] * 12).assign(clip="c")
