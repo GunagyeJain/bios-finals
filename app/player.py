@@ -65,7 +65,8 @@ def payload(clip: str, d: dict, fps: float, duration: float) -> dict:
         "source": source,
         "segments": _rows(d["segments"], ["t_start", "t_end", "light", "reasons"]),
         "contacts": _rows(d["contacts"], ["t_start", "t_end", "hand", "state", "object_name", "grip"]),
-        "steps": _rows(d["steps"], ["start_s", "end_s", "verb", "object", "hand", "caption"]),
+        "steps": _rows(d["steps"].assign(verb=d["steps"]["verb"].replace({"other": "handle"})),   # catch-all verb
+                       ["start_s", "end_s", "verb", "object", "hand", "caption"]),
         "alerts": _rows(d["alerts"], ["t_start", "t_end", "kind", "detail", "hand"]),
         "hands": hand_track(clip),
         "robot": {k: sorted(v) for k, v in query.ROBOT_CAN_COPY.items()},
