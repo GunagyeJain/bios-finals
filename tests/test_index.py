@@ -63,3 +63,10 @@ def test_fixtures_stay_out_when_real_clips_exist(outputs):
             f.write_text(f.read_text(encoding="utf-8").replace("fixture_001", real.name), encoding="utf-8")
     build()
     assert query.library()["clip"].tolist() == [real.name]
+
+
+def test_registering_a_dataset_again_replaces_it(outputs):
+    from egovision.index.build import register_product
+    register_product("dataset", "demo", outputs, {}, 2)
+    register_product("dataset", "demo", outputs, {}, 85)
+    assert _q("SELECT name, n_items FROM products WHERE kind = 'dataset'") == [("demo", 85)]

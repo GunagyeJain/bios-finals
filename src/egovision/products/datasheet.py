@@ -72,7 +72,8 @@ def write(root: Path, summary: dict, episodes: list[dict], clips: pd.DataFrame, 
         f"- Red seconds inside episodes: {summary['red_seconds']:.0f}.",
         f"- Filters: factories {filters['factories'] or 'all'}, grips {filters['grips'] or 'all'}, "
         f"task contains '{filters['task_contains'] or '-'}', "
-        f"robot hand {({'2f': 'only grabs a 2-finger robot can copy', '5f': 'only grabs a 5-finger robot can copy'}).get(filters.get('robot'), 'any')}.", "",
+        f"robot hand {({'2f': 'only grabs a 2-finger robot can copy', '5f': 'only grabs a 5-finger robot can copy'}).get(filters.get('robot'), 'any')}, "
+        f"clips {', '.join(filters.get('clips') or []) or 'all'}.", "",
         "| Factory | Clips | Episodes | Seconds |", "|---|---:|---:|---:|",
         *[f"| {r.Index} | {int(r.clips)} | {int(r.episodes)} | {r.seconds:.0f} |" for r in by_factory.itertuples()], "",
         "Most common tasks: " + ", ".join(f"{t} ({n})" for t, n in tasks) + ".", "",

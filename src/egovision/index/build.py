@@ -151,6 +151,7 @@ def register_product(kind: str, name: str, path: str | Path, filter: dict, n: in
     db = _connect()
     try:
         with db:
+            db.execute("DELETE FROM products WHERE kind = ? AND name = ?", (kind, name))   # a rebuild replaces it
             _insert(db, "products", PRODUCT_COLS, [{"kind": kind, "name": name, "path": str(path),
                                                     "filter_json": json.dumps(filter), "n_items": n,
                                                     "created_at": datetime.now().isoformat(timespec="seconds")}])

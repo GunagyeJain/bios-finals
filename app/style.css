@@ -209,6 +209,7 @@ video { max-height: min(46vh, 430px); }
 .ev-panel { border-radius: 14px; padding: 18px 22px; box-shadow: 0 1px 0 rgba(255,255,255,.03) inset,
   0 12px 32px rgba(0,0,0,.25); }
 .ev-panel h3 { font-family: var(--display); font-size: 18px; }
+.ev-h2 { font-family: var(--display); font-size: 24px; font-weight: 700; margin: 40px 0 8px; }
 .ev-table td { height: 46px; }
 .ev-table tr.grp td b { font-family: var(--display); font-size: 16px; }
 .ev-table tr.row:hover td { background: var(--accent-soft); }

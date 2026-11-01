@@ -83,13 +83,23 @@ if build:
         except ValueError as e:
             st.error(str(e))
 
-done = st.session_state.get("last_export")
-if done:
-    root = Path(done["path"])
-    st.html(f'<div class="ev-panel" style="margin-top:24px"><h3>Built {escape(done["name"])}</h3>'
-            f'<p style="color:#8b96ab;margin:0"><span class="ev-num">{done["episodes"]}</span> episodes · '
-            f'<span class="ev-num">{done["frames"]:,}</span> frames · <span class="ev-num">{mmss(done["seconds"])}'
-            f'</span> · <span class="ev-num">{done["red_seconds"]:.0f}</span> red seconds · '
+products = query.sql("SELECT name, path, filter_json, n_items, created_at FROM products WHERE kind = 'dataset' "
+                     "ORDER BY created_at DESC")
+products = products[products["path"].map(lambda x: Path(x).exists())].drop_duplicates("name")
+if not products.empty:
+    st.html('<h2 class="ev-h2">Built datasets</h2>')
+    just = (st.session_state.get("last_export") or {}).get("name")
+    names = products["name"].tolist()
+    pick = st.radio("Dataset", names, index=names.index(just) if just in names else 0, horizontal=True,
+                    format_func=lambda n: f"{n} · {products.set_index('name').loc[n, 'n_items']} episodes",
+                    label_visibility="collapsed")
+    row = products.set_index("name").loc[pick]
+    root = Path(row["path"])
+    info = json.loads((root / "meta" / "info.json").read_text(encoding="utf-8"))
+    st.html(f'<div class="ev-panel" style="margin-top:12px"><h3>{escape(pick)}</h3>'
+            f'<p style="color:#8b96ab;margin:0"><span class="ev-num">{info.get("total_episodes", row["n_items"])}'
+            f'</span> episodes · <span class="ev-num">{info.get("total_frames", 0):,}</span> frames · '
+            f'<span class="ev-num">{info.get("total_tasks", "—")}</span> tasks · built {escape(row["created_at"])} · '
             f'<code>{escape(str(root))}</code></p></div>')
     sheet, data = st.tabs(["Data sheet", "First episode (parquet)"])
     with sheet:
@@ -99,12 +109,3 @@ if done:
         first = pd.read_parquet(root / "data" / "chunk-000" / "episode_000000.parquet")
         st.caption(f"{len(first)} rows × {len(first.columns)} columns · `pd.read_parquet(...)`")
         st.dataframe(first.head(20), hide_index=True, width="stretch")
-
-products = query.sql("SELECT name, path, filter_json, n_items, created_at FROM products WHERE kind = 'dataset' "
-                     "ORDER BY created_at DESC")
-products = products[products["path"].map(lambda x: Path(x).exists())]
-if not products.empty:
-    st.html('<h3 style="font-size:16px;font-weight:600;margin:32px 0 8px">Earlier datasets</h3>')
-    products["light"] = products["filter_json"].map(lambda f: json.loads(f).get("light", "—"))
-    st.dataframe(products[["name", "n_items", "light", "created_at", "path"]].rename(
-        columns={"n_items": "episodes", "created_at": "built"}), hide_index=True, width="stretch")
